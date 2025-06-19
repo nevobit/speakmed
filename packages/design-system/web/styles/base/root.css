@@ -1,0 +1,28 @@
+:root {
+    --dse-body-text-color: #333333;
+    --dse-body-bg-color: #ffffff;
+    --dse-btn-primary-color: #ffffff;
+    --dse-btn-primary-bg: #4CAF50;
+    --dse-btn-primary-bg-hover: #45a049;
+    --dse-btn-secondary-color: #ffffff;
+    --dse-btn-secondary-bg: #333333;
+    --dse-form-color: #333333;
+    --dse-form-bg: #ffffff;
+    --dse-form-error-color: #f44336;
+    --dse-form-error-border: #f44336;
+    --dse-form-border-focus-color: #4CAF50;
+    --dse-body-font-size: 16px;
+    --dse-body-font-weight: 400;
+    --dse-h1-font-size: 2.5rem;
+    --dse-h2-font-size: 2rem;
+    --dse-h3-font-size: 1.75rem;
+    --dse-h4-font-size: 1.5rem;
+    --dse-h5-font-size: 1.25rem;
+    --dse-h6-font-size: 1rem;
+    --dse-h1-font-weight: 500;
+    --dse-h2-font-weight: 500;
+    --dse-h3-font-weight: 500;
+    --dse-h4-font-weight: 400;
+    --dse-h5-font-weight: 400;
+    --dse-h6-font-weight: 300;
+}

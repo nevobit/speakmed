@@ -1,0 +1,36 @@
+{
+  "name": "turborepo-template",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "release": "turbo release --concurrency=1",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.2.0",
+    "@commitlint/config-conventional": "^18.1.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.1.0",
+    "prettier": "^3.2.5",
+    "turbo": "^2.0.10",
+    "typescript": "^5.4.5"
+  },
+  "packageManager": "pnpm@8.15.6",
+  "engines": {
+    "node": ">=18"
+  },
+  "lint-staged": {
+    "apps/**/*.{ts,jsx,tsx}": [
+      "eslint --fix"
+    ],
+    "packages/**/*.{ts,jsx,tsx}": [
+      "eslint --fix"
+    ],
+    "*json": [
+      "prettier --write"
+    ]
+  }
+}

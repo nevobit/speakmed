@@ -1,0 +1,20 @@
+.spinner svg {
+    animation: spin .5s linear infinite;
+    fill: var(--p-color-bg-fill-brand);
+}
+
+.sizeSmall svg {
+    height: 20px;
+    width: 20px;
+}
+
+.sizeLarge svg {
+    height: 44px;
+    width: 44px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

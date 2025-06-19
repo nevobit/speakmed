@@ -1,0 +1,89 @@
+{
+  "name": "@repo/design-system",
+  "version": "1.0.0",
+  "description": "",
+  "files": [
+    "build/",
+    "!build/ts/**/*.tsbuildinfo",
+    "!build/ts/**/tests/",
+    "!build/ts/**/playground/",
+    "locales/"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "react-native": "native/index.ts",
+  "browser": "web/index.ts",
+  "esnext": "build/esnext/index.esnext",
+  "types": "build/ts/src/index.d.ts",
+  "scripts": {
+    "build": "run-s build:types build:js build:validate",
+    "build:types": "tsc -b",
+    "build:js": "rollup -c",
+    "build:validate": "node scripts/build-validate.js",
+    "dev": "pnpm run storybook",
+    "storybook": "storybook dev -p 6006",
+    "storybook-native": "start-storybook -p 7007",
+    "build-storybook": "storybook build",
+    "start-native": "react-native start"
+  },
+  "keywords": [
+    "react",
+    "components",
+    "component library"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "normalize.css": "^8.0.1",
+    "react": "^18.3.1",
+    "react-dom": "18.3.1",
+    "react-feather": "^2.0.10",
+    "react-native": "^0.74.5",
+    "react-native-gesture-handler": "^2.18.1",
+    "react-native-vector-icons": "^10.1.0",
+    "storybook": "^8.2.7",
+    "vite-plugin-replace": "^0.1.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.25.3",
+    "@babel/preset-react": "^7.24.7",
+    "@babel/preset-typescript": "^7.24.7",
+    "@babel/runtime": "^7.25.0",
+    "@chromatic-com/storybook": "^1.6.1",
+    "@react-native/babel-preset": "^0.74.87",
+    "@repo/typescript-config": "workspace:^",
+    "@storybook/addon-essentials": "^8.2.7",
+    "@storybook/addon-interactions": "^8.2.7",
+    "@storybook/addon-links": "^8.2.7",
+    "@storybook/addon-onboarding": "^8.2.7",
+    "@storybook/addon-ondevice-actions": "^7.6.20",
+    "@storybook/addon-ondevice-controls": "^7.6.20",
+    "@storybook/blocks": "^8.2.7",
+    "@storybook/react": "^8.2.7",
+    "@storybook/react-native": "^7.6.20",
+    "@storybook/react-vite": "^8.2.7",
+    "@storybook/test": "^8.2.7",
+    "@types/node": "^22.1.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "react-native-web": "^0.19.12",
+    "typescript": "^5.5.4",
+    "vite": "^5.3.5"
+  },
+  "browserslist": [
+    "last 3 chrome versions",
+    "last 3 firefox versions",
+    "last 3 opera versions",
+    "last 3 edge versions",
+    "last 3 safari versions",
+    "last 3 chromeandroid versions",
+    "last 1 firefoxandroid versions",
+    "ios >= 13.4",
+    "node 20.10.0"
+  ]
+}

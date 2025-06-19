@@ -1,0 +1,69 @@
+:root {
+    /* Colors */
+    /* Brand Colors */
+    --green: #5ece7b;
+    --green-light: #9ee2b0;
+    --dark: #1d1f22;
+    --dark-light: #737680;
+
+    /* Neutral Colors */
+    --gray: #a3a5ad;
+    --gray-light: #bebfc4;
+    --white: #fff;
+    --white-dark: #f1f2f3;
+
+    /* Utility colors */
+    --red: #d12727;
+    --red-light: #f8dedf;
+    --blue: #0468db;
+    --blue-light: #b4d2f4;
+
+    /* Typography */
+    /* Font families */
+    --playfair: "Playfair Display", serif;
+    --raleway: "Raleway", "HelveticaNeue", "Helvetica", sans-serif;
+
+    /* Font sizes */
+    --fs-xs: 0.75rem;
+    --fs-sm: 0.875rem;
+    --fs-base: 1rem;
+    --fs-lg: 1.125rem;
+    --fs-xl: 1.5rem;
+
+    /* Heading font sizes */
+    --h-1: 1.375rem;
+    --h-2: 1.375rem;
+    --h-3: 1rem;
+    --h-4: 1.125rem;
+    --h-5: 0.75rem;
+    --h-6: 0.75rem;
+
+    /* Font weights */
+    --fw-light: 300;
+    --fw-normal: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+    --fw-extrabold: 800;
+    --fw-black: 900;
+
+    /* Breakpoints */
+    --breakpoint-md: 48rem;
+    --breakpoint-lg: 64rem;
+    --breakpoint-xl: 80rem;
+
+    /* Spacing */
+    --spacing-none: 0rem;
+    --spacing-xxxs: 0.25rem;
+    --spacing-xxs: 0.5rem;
+    --spacing-xs: 0.75rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    --spacing-xxl: 4.5rem;
+    --spacing-xxxl: 6rem;
+
+    /* Shadows */
+    --shadow-base: 0px 4px 11px rgba(157, 157, 157, 0.21);
+}

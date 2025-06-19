@@ -1,0 +1,35 @@
+/auth/login:
+  post:
+    tags:
+      - Authentication
+    summary: Login user
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/loginSchema'
+    responses:
+      '200':
+        description: Successful login
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userSchema'
+
+/auth/refresh-token:
+  post:
+    tags:
+      - Authentication
+    summary: Login user
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/loginSchema'
+    responses:
+      '200':
+        description: Successful login
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userSchema'
