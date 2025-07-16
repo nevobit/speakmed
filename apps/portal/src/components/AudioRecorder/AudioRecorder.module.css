@@ -1,0 +1,248 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 60vh;
+}
+.card {
+  background: #fff;
+  border-radius: 1.6rem;
+  box-shadow: 0 0.4rem 2.4rem rgba(30, 41, 59, 0.08);
+  padding: 3.6rem 3.2rem 3.2rem 3.2rem;
+  min-width: 34rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+h2 {
+  color: #1362bc;
+  margin-bottom: 2.4rem;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+.controls {
+  margin-bottom: 2rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2.4rem;
+}
+.recordBtn, .stopBtn {
+  padding: 2rem;
+  height: 8rem;
+  width: 8rem;
+  font-size: 1.4rem;
+  border: none;
+  border-radius: 50rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.recordBtn {
+  background: #1362bc;
+  color: #fff;
+}
+.recordBtn:hover {
+  background: #1e293b;
+}
+.stopBtn {
+  background: #ef4444;
+  color: #fff;
+}
+.stopBtn:hover {
+  background: #b91c1c;
+}
+.timer {
+  font-size: 2.4rem;
+  color: #334155;
+  margin-bottom: 1.6rem;
+}
+.instructions {
+  color: #64748b;
+  font-size: 1.4rem;
+}
+.subHeader {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.6rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 1.6rem;
+}
+.subHeader h3 {
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: #334155;
+}
+.audioPlayer {
+  margin-bottom: 1.8rem;
+  width: 40rem;
+}
+.templateSelector {
+  width: 40rem;
+  margin-bottom: 2.4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.templateSelector label {
+  font-size: 1.4rem;
+  color: #475569;
+  margin-bottom: 0.8rem;
+}
+.select {
+  width: 100%;
+  padding: 1rem 1.2rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem;
+  font-size: 1.4rem;
+  background-color: #fff;
+  color: #1362bcc6;
+  text-align: center;
+  font-weight: 600;
+}
+.actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 1.6rem;
+  margin-top: 1.6rem;
+}
+.primaryBtn, .secondaryBtn {
+  padding: 1.2rem 2rem;
+  font-size: 1.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.primaryBtn {
+  background-color: #1362bc;
+  color: #fff;
+}
+.primaryBtn:hover {
+  background-color: #1e293b;
+}
+.secondaryBtn {
+  background-color: #f1f5f9;
+  color: #334155;
+  border-color: #e2e8f0;
+}
+.secondaryBtn:hover {
+  background-color: #e2e8f0;
+}
+.reportSection {
+  width: 100%;
+  margin-bottom: 2.4rem;
+}
+.reportSection h3 {
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 1.2rem;
+}
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem;
+  padding: 1.2rem;
+  font-size: 1.4rem;
+  resize: vertical;
+  background-color: #f8fafc;
+}
+.newRecordingAction {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 2.4rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 2.4rem;
+}
+.error {
+  color: #ef4444;
+  margin-top: 1.6rem;
+  font-size: 1.4rem;
+}
+.summaryBox {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem;
+  padding: 1.2rem;
+  font-size: 1.4rem;
+  background-color: #f8fafc;
+  /* min-height: 80px; */
+}
+.reportSection .ql-toolbar.ql-snow {
+  display: none;
+}
+.reportSection .ql-container.ql-snow {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem;
+  background-color: #f8fafc;
+}
+.reportSection .ql-editor {
+  min-height: 200px;
+  font-size: 1.4rem;
+}
+.timerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-bottom: 2.4rem;
+  min-height: 2.4rem;
+}
+.blinkingDot {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 12px #ef4444;
+  animation: blink 1s steps(1, start) infinite;
+  display: inline-block;
+  margin-right: 0.6rem;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.hiddenDot {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: transparent;
+  display: inline-block;
+  margin-right: 0.6rem;
+}
+.pauseBtn {
+  padding: 2rem;
+  height: 8rem;
+  width: 8rem;
+  font-size: 1.4rem;
+  border: none;
+  border-radius: 50rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1362bc;
+  color: #fff;
+  margin-right: 0.2rem;
+  box-shadow: 0 2px 8px rgba(19,98,188,0.08);
+}
+.pauseBtn:hover {
+  background: #1e293b;
+} 

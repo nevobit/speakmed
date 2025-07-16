@@ -8,6 +8,7 @@ export const UserSchemaMongo = new Schema(
     country: { type: String },
     email: { type: String },
     enterprise: { type: String },
+    voiceSamplePath: { type: String },
   },
   {
     versionKey: false,

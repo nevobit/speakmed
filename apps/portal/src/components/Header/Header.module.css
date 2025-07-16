@@ -1,0 +1,42 @@
+.header {
+  width: 100%;
+  height: 6.4rem;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 0.2rem 0.8rem rgba(30, 41, 59, 0.04);
+  padding: 0 3.2rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.right {
+  display: flex;
+  align-items: center;
+  gap: 2.4rem;
+}
+.langBtn {
+  background: #1362bc;
+  color: #fff;
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.6rem 1.6rem;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: background 0.2s;
+}
+.langBtn:hover {
+  background: #1e293b;
+}
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+.avatar {
+  font-size: 1.5rem;
+} 

@@ -5,6 +5,7 @@ import fastifyCors from "@fastify/cors";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import fastifyRateLimit from "@fastify/rate-limit";
+import fastifyMultipart from "@fastify/multipart";
 import {
   ConsoleTransport,
   Logger,
@@ -16,9 +17,8 @@ import { registerRoutes } from "../routes";
 import { initDataSources } from '@repo/data-sources';
 import { setLogger } from "@repo/constant-definitions";
 import { swaggerOptions, swaggerUiOptions } from "../docs";
-import { verify } from "@repo/business-logic";
 
-const { PORT, HOST, REGION, CORS_ORIGIN, ENVIRONMENT, DATABASE_URL, MONGO_URL, REDIS_URL } = process.env;
+const { PORT, HOST, REGION, CORS_ORIGIN, ENVIRONMENT, MONGO_URL } = process.env;
 
 const consoleOptions = {
   transport: LoggerTransportName.CONSOLE,
@@ -68,16 +68,13 @@ MonoContext.setState({
 
 const main = async () => {
   await initDataSources({
-    postgresqldb: {
-      postgresUrl: DATABASE_URL
-    },
+    // postgresqldb: {
+    //   postgresUrl: DATABASE_URL
+    // },
     mongoose: {
       mongoUrl: MONGO_URL
     },
-    redisdb: {
-      redisReadUrl: REDIS_URL,
-      redisWriteUrl: REDIS_URL
-    }
+
   });
 
   const server = fastify({
@@ -85,6 +82,7 @@ const main = async () => {
   });
 
   server.register(fastifyCors, corsOptions);
+  server.register(fastifyMultipart);
   server.register(fastifyRateLimit, {
     max: 30,
     timeWindow: "1 minute",
@@ -103,24 +101,24 @@ const main = async () => {
   server.register(fastifySwagger, swaggerOptions);
   server.register(fastifySwaggerUi, swaggerUiOptions);
 
-  server.addHook('preValidation', async (req, reply) => {
-    const data = await verify({ url: req.routeOptions.url, body: req.body, headers: req.headers, protocol: req.protocol });
-    if (data?.type == "error") {
-      reply.send(data.message)
-    }
-  });
+  // server.addHook('preValidation', async (req, reply) => {
+  //   const data = await verify({ url: req.routeOptions.url, body: req.body, headers: req.headers, protocol: req.protocol });
+  //   if (data?.type == "error") {
+  //     reply.send(data.message)
+  //   }
+  // });
 
   server.register(
     (instance, _options, next) => {
       registerRoutes(instance);
       next();
     },
-    { prefix: "/api/v1" }
   );
 
   server.listen(
     { port: Number(PORT) || 8000, host: HOST },
     (err, address) => {
+      console.log(err, address);
       logger.all(`Server successfully started on: ${address}`, { address });
       logger.info("Press CTRL-c to stop");
     }

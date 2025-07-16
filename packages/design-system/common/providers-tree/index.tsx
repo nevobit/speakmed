@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 
 type ProvidersType = [React.ElementType, Record<string, unknown>];
 type ChildrenType = {
-  children: Array<React.ElementType>;
+  children: ReactNode;
 };
 
 export const buildProvidersTree = (
