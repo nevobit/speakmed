@@ -1,0 +1,25 @@
+.field {
+    margin-top: 2rem;
+}
+
+.label {
+    display: block;
+    padding-bottom: .5rem;
+    color: #41454e;
+    font-weight: 400;
+    font-size: 1.3rem;
+}
+
+.tip {
+    padding-top: .6rem;
+    color: rgba(51, 51, 51, 0.728);
+    font-size: 1.2rem;
+    font-weight: 400;
+}
+
+.error {
+    padding-top: .6rem;
+    color: red;
+    font-size: 1.2rem;
+    font-weight: 500;
+}

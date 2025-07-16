@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+rm -rf dist
+mkdir -p dist
+esbuild src/**/*.ts --bundle --platform=node --target=node20 --outdir=dist --minify --tree-shaking --external:farmhash --format=cjs --analyze
+mkdir -p dist/server/static
+cp -R src/docs/static/* dist/server/static/

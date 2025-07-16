@@ -1,0 +1,22 @@
+:root {
+    /* Global text colors */
+    --dse-body-text-color: var(--dark, #1d1f22);
+    --dse-body-bg-color: var(--white, #fff);
+
+    /* Buttons */
+    --dse-btn-primary-color: var(--white, #fff);
+    --dse-btn-primary-bg: var(--green, #5ece7b);
+    --dse-btn-primary-bg-hover: var(--green-light, #9ee2b0);
+
+    /* Forms */
+    --dse-form-border-color: var(--white-dark, #f1f2f3);
+    --dse-form-bg-color: var(--white, #fff);
+    --dse-form-bg-option-selected: var(--green, #5ece7b);
+    --dse-form-color-option-selected: var(--white, #fff);
+    --dse-form-bg-color-hover: var(--white-dark, #f1f2f3);
+    --dse-form-color: var(--dark, #1d1f22);
+    --dse-form-bg: var(--white, #fff);
+    --dse-form-error-color: var(--red, #d12727);
+    --dse-form-error-border: var(--red, #d12727);
+    --dse-form-border-focus-color: var(--green, #5ece7b);
+}

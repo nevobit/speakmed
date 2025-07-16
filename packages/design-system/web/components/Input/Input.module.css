@@ -1,0 +1,56 @@
+.input {
+    position: relative;
+    display: inline-block;
+    height: 3.5rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(0, 0, 0, .1);
+    border-radius: .5rem;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+.check {
+    border: none;
+}
+
+
+.input svg {
+    padding-left: 1rem;
+}
+
+.input_element {
+    height: 100%;
+    width: 100%;
+    padding: 0 .7rem;
+    background-color: var(--bg-second);
+    color: var(--white-color);
+    font-size: 1.2rem;
+}
+
+.input:focus-within {
+    border: 1px solid var(--main-color);
+}
+
+.check {
+    background-color: transparent;
+    max-width: 5rem;
+}
+
+.check:focus-within {
+    border: none;
+}
+
+.input_element::placeholder {
+    opacity: .5;
+}
+
+.input_element:focus::placeholder {
+    opacity: .8;
+}
+
+.input_none {
+    border: none;
+}

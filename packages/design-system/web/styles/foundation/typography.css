@@ -1,0 +1,24 @@
+:root {
+    /* Body font family */
+    --dse-body-font-family: var(--playfair, "Playfair Display", serif);
+
+    /* Body font sizes */
+    --dse-body-font-size: var(--fs-sm, 0.875rem);
+    --dse-body-font-weight: var(--fw-normal, 400);
+
+    /* Heading font sizes */
+    --dse-h1-font-size: var(--h-1, 1.375rem);
+    --dse-h2-font-size: var(--h-2, 1.375rem);
+    --dse-h3-font-size: var(--h-3, 1rem);
+    --dse-h4-font-size: var(--h-4, 1.125rem);
+    --dse-h5-font-size: var(--h-5, 0.75rem);
+    --dse-h6-font-size: var(--h-6, 0.75rem);
+
+    /* Heading font weights */
+    --dse-h1-text-weight: var(--fw-black, 900);
+    --dse-h2-text-weight: var(--fw-semibold, 600);
+    --dse-h3-text-weight: var(--fw-bold, 700);
+    --dse-h4-text-weight: var(--fw-medium, 500);
+    --dse-h5-text-weight: var(--fw-normal, 400);
+    --dse-h6-text-weight: var(--fw-light, 300);
+}

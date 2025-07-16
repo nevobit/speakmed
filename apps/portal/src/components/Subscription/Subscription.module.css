@@ -1,0 +1,123 @@
+.container {
+  background: #fff;
+  border-radius: 1.6rem;
+  box-shadow: 0 0.4rem 2.4rem rgba(30, 41, 59, 0.08);
+  padding: 3.6rem 3.2rem 3.2rem 3.2rem;
+  max-width: 110rem;
+  margin: 0 auto;
+}
+h2 {
+  color: #1362bc;
+  margin-bottom: 2.4rem;
+  font-size: 1.6rem;
+}
+.toggleRow {
+  display: flex;
+  gap: 1.2rem;
+  margin-bottom: 3.2rem;
+  justify-content: center;
+}
+.toggleRow button {
+  background: #f4f6fb;
+  color: #1362bc;
+  border: 0.15rem solid #1362bc;
+  border-radius: 0.8rem;
+  padding: 0.8rem 2.4rem;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.activeToggle {
+  background: #1362bc !important;
+  color: #fff !important;
+}
+.plansRow {
+  display: flex;
+  gap: 3.2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.planCard {
+  background: #f4f6fb;
+  border-radius: 1.6rem;
+  box-shadow: 0 0.2rem 0.8rem rgba(30, 41, 59, 0.04);
+  padding: 3.2rem 2.8rem 2.8rem 2.8rem;
+  min-width: 26rem;
+  max-width: 32rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  border: 0.15rem solid #e5e7eb;
+}
+.popular {
+  border: 0.25rem solid #1362bc;
+}
+.popularLabel {
+  position: absolute;
+  top: -1.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1362bc;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 0.8rem;
+  padding: 0.4rem 1.6rem;
+  box-shadow: 0 0.2rem 0.8rem rgba(30, 41, 59, 0.08);
+}
+h3 {
+  color: #1362bc;
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+}
+.price {
+  font-size: 2.1rem;
+  font-weight: bold;
+  color: #1362bc;
+  margin-bottom: 0.8rem;
+}
+.period {
+  font-size: 1.1rem;
+  color: #64748b;
+  margin-left: 0.4rem;
+}
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 1.8rem 0 1.8rem 0;
+  color: #1e293b;
+  font-size: 1.2rem;
+  width: 100%;
+}
+.features li {
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.subscribeBtn {
+  background: #1362bc;
+  color: #fff;
+  border: none;
+  border-radius: 0.8rem;
+  padding: 1.2rem 0;
+  width: 100%;
+  font-size: 1.4rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 0.8rem;
+  transition: background 0.2s;
+}
+.subscribeBtn:hover {
+  background: #1e293b;
+}
+.confirmation {
+  margin-top: 1.2rem;
+  color: #22c55e;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-align: center;
+} 
