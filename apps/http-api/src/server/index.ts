@@ -1,4 +1,6 @@
-import "dotenv/config";
+import * as path from "path";
+import { config } from "dotenv";
+
 import os from "os";
 import fastify from "fastify";
 import fastifyCors from "@fastify/cors";
@@ -17,6 +19,7 @@ import { registerRoutes } from "../routes";
 import { initDataSources } from '@repo/data-sources';
 import { setLogger } from "@repo/constant-definitions";
 import { swaggerOptions, swaggerUiOptions } from "../docs";
+config({ path: path.resolve(__dirname, "../../.env") });
 
 const { PORT, HOST, REGION, CORS_ORIGIN, ENVIRONMENT, MONGO_URL } = process.env;
 
