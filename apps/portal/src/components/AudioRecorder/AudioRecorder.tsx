@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import 'react-quill/dist/quill.snow.css'; // Import styles
 import styles from './AudioRecorder.module.css';
 import { Mic, StopCircle, FileText, Download, Copy, RefreshCw } from 'lucide-react';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 type View = 'recording' | 'preview' | 'report';
 interface Template {
@@ -40,7 +41,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     const fetchTemplates = async () => {
       try {
         // This is a placeholder. Replace with your actual API endpoint.
-        const response = await fetch('http://localhost:8000/api/templates'); 
+        const response = await fetch(`${BASE_URL}/api/templates`); 
         if (!response.ok) {
           throw new Error('Failed to fetch templates');
         }
@@ -150,7 +151,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
-      const transcribeRes = await fetch('http://localhost:8000/api/transcribe', {
+      const transcribeRes = await fetch(`${BASE_URL}/api/transcribe`, {
         method: 'POST',
         body: formData,
       });
@@ -160,7 +161,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
       const transcribeData = await transcribeRes.json();
       const transcript = transcribeData.transcript;
 
-      const reportRes = await fetch('http://localhost:8000/api/reports', {
+      const reportRes = await fetch(`${BASE_URL}/api/reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
