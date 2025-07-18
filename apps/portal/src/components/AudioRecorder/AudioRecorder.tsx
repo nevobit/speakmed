@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css'; // Import styles
 import styles from './AudioRecorder.module.css';
 import { Mic, StopCircle, FileText, Download, Copy, RefreshCw } from 'lucide-react';
