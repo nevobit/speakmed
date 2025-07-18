@@ -16,7 +16,7 @@ const Login: React.FC = () => {
     }
     // Simulación de login exitoso
     setError('');
-    navigate('/app');
+    navigate('/dashboard');
   };
 
   return (
