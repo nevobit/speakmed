@@ -13,7 +13,7 @@ const PublicValidationFragment = (
 )
 
 const GuardRoute = ({privateValidation}: Props) => {
-  const { isLoading, user } = useUser();
+  const { isLoading } = useUser();
 
   if(isLoading) return <Loader />
 
