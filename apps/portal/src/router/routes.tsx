@@ -31,11 +31,10 @@ export const routes: RouteObject[] = [
     errorElement: <ErrorBoundary />,
     children: [
       {
-        element: <Layout userName={'Nestor Mosquera'} active={''} />,
+        element: <Layout userName={'Usuario'} active={''} />,
         children: [
             {
             index: true,
-            path: '/',
             element: (
               <>
                 <h1>Bienvenido a Speakmed</h1>
