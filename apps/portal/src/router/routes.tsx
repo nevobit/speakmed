@@ -35,6 +35,8 @@ export const routes: RouteObject[] = [
         children: [
             {
             index: true,
+        path: '/',
+      
             element: (
               <>
                 <h1>Bienvenido a Speakmed</h1>
@@ -43,7 +45,6 @@ export const routes: RouteObject[] = [
             ),
           },
           {
-            index: true,
             path: '/dashboard',
             element: (
               <>
