@@ -22,7 +22,7 @@ const Register: React.FC = () => {
     }
     // Simulación de registro exitoso
     setError('');
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   return (

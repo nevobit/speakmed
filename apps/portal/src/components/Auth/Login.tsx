@@ -14,9 +14,8 @@ const Login: React.FC = () => {
       setError('Por favor, completa todos los campos.');
       return;
     }
-    // Simulación de login exitoso
     setError('');
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   return (
