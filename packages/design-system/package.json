@@ -20,14 +20,9 @@
   "esnext": "build/esnext/index.esnext",
   "types": "build/ts/src/index.d.ts",
   "scripts": {
-    "build": "run-s build:types build:js build:validate",
-    "build:types": "tsc -b",
-    "build:js": "rollup -c",
-    "build:validate": "node scripts/build-validate.js",
     "dev": "pnpm run storybook",
     "storybook": "storybook dev -p 6006",
     "storybook-native": "start-storybook -p 7007",
-    "build-storybook": "storybook build",
     "start-native": "react-native start"
   },
   "keywords": [
