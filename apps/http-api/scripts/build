@@ -5,3 +5,5 @@ mkdir -p dist
 esbuild src/**/*.ts --bundle --platform=node --target=node20 --outdir=dist --minify --tree-shaking --external:farmhash --format=cjs --analyze
 mkdir -p dist/server/static
 cp -R src/docs/static/* dist/server/static/
+mkdir -p dist/server/routes
+cp -R dist/routes/* dist/server/routes/
