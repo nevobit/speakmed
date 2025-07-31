@@ -35,38 +35,54 @@ function App() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Cargar estadísticas reales desde la API
-    const loadStats = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard/stats`);
-        
-        if (!response.ok) {
-          throw new Error('Error al cargar estadísticas');
-        }
-        
-        const realStats: DashboardStats = await response.json();
-        setStats(realStats);
-      } catch (error) {
-        console.error('Error loading stats:', error);
-        // Fallback a datos básicos si hay error
-        setStats({
-          totalRecordings: 0,
-          totalReports: 0,
-          totalDownloads: 0,
-          averageDuration: 0,
-          recentActivity: []
-        });
-      } finally {
-        setLoading(false);
+  // Función para cargar estadísticas
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/dashboard/stats`;
+      console.log('Cargando estadísticas desde API:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`Error al cargar estadísticas: ${response.status}`);
       }
-    };
+      
+      const realStats: DashboardStats = await response.json();
+      console.log('Estadísticas cargadas:', realStats);
+      setStats(realStats);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      // Fallback a datos básicos si hay error
+      setStats({
+        totalRecordings: 0,
+        totalReports: 0,
+        totalDownloads: 0,
+        averageDuration: 0,
+        recentActivity: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    console.log('Section cambiada a:', section);
     if (section === 'dashboard') {
+      console.log('Cargando dashboard stats...');
       loadStats();
     }
-  }, []);
+  }, [section]); // Asegurar que se ejecute cuando cambie section
+  console.log(section);
+  // Cargar estadísticas iniciales si la sección es dashboard
+  useEffect(() => {
+    if (section === 'dashboard') {
+      console.log('Carga inicial de dashboard stats...');
+      loadStats();
+    }
+  }, []); // Solo se ejecuta al montar el componente
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -94,23 +110,7 @@ function App() {
   // Función para recargar estadísticas
   const reloadStats = () => {
     if (section === 'dashboard') {
-      const loadStats = async () => {
-        try {
-          setLoading(true);
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/dashboard/stats`);
-          
-          if (!response.ok) {
-            throw new Error('Error al cargar estadísticas');
-          }
-          
-          const realStats: DashboardStats = await response.json();
-          setStats(realStats);
-        } catch (error) {
-          console.error('Error loading stats:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
+      console.log('Recargando estadísticas...');
       loadStats();
     }
   };
