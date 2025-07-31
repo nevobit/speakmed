@@ -5,6 +5,7 @@ import styles from './Reports.module.css';
 import { Eye } from 'lucide-react';
 
 interface Report {
+  _id: string;
   id: string;
   date: string;
   duration?: string;
@@ -100,14 +101,14 @@ const Reports: React.FC = () => {
                         {paginatedReports.map((r) => {
                             const dateObj = r.date ? new Date(r.date) : null;
                             return (
-                                <tr key={r.id}>
+                                <tr key={r._id}>
                                     <td>{dateObj ? dateObj.toLocaleDateString() : '-'}</td>
                                     <td>{dateObj ? dateObj.toLocaleTimeString() : '-'}</td>
                                     <td>{formatDuration(r.duration)}</td>
                                     <td>
                                         <button 
                                             className={styles.iconBtn}
-                                            onClick={() => handleViewReport(r.id)}
+                                            onClick={() => handleViewReport(r._id)}
                                             disabled={isLoadingDetail}
                                             title="Ver informe"
                                         >

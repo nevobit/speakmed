@@ -79,10 +79,15 @@ const main = async () => {
 
   const server = fastify({
     logger: false,
+    bodyLimit: 10 * 1024 * 1024, // 10MB limit for body size
   });
 
   server.register(fastifyCors, corsOptions);
-  server.register(fastifyMultipart);
+  server.register(fastifyMultipart, {
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit for file uploads
+    },
+  });
   server.register(fastifyRateLimit, {
     max: 30,
     timeWindow: "1 minute",

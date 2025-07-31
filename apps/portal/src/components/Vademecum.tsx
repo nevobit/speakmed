@@ -2,7 +2,7 @@ import { apiInstance } from '@/api';
 import React, { useState } from 'react';
 
 const countries = [
-  // { code: 'ARG', name: 'Argentina' },
+  { code: 'ARG', name: 'Argentina' },
   // { code: 'MEX', name: 'México' },
   { code: 'CHL', name: 'Chile' },
   { code: 'COL', name: 'Colombia' },

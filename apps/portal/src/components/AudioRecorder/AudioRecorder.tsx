@@ -1,22 +1,39 @@
 import React, { useState, useRef, useEffect } from 'react';
-import 'react-quill/dist/quill.snow.css'; // Import styles
 import styles from './AudioRecorder.module.css';
-import { Mic, StopCircle, FileText, Download, Copy, RefreshCw } from 'lucide-react';
+import { Mic, StopCircle, FileText, Download, Copy, RefreshCw, FileDown, Receipt, Settings, User, UserCheck } from 'lucide-react';
+import Editor from './Editor';
+import { updateReport } from '../../api';
+import MedicationValidation from '../MedicationValidation';
+import AIMedicationValidation from '../AIMedicationValidation';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-type View = 'recording' | 'preview' | 'report';
+type View = 'recording' | 'preview' | 'report' | 'medicalData';
 interface Template {
   id: string;
   name: string;
+}
+
+interface MedicalData {
+  clinicName: string;
+  doctorName: string;
+  doctorRut: string;
+  doctorSpecialty: string;
+  doctorLocation: string;
+  patientName: string;
+  patientGender: string;
+  patientRut: string;
+  patientBirthDate: string;
+  doctorSignature: string | null;
 }
 
 interface AudioRecorderProps {
   onRecordingComplete?: (blob: Blob) => void;
   hideTemplateSelector?: boolean;
   hideReport?: boolean;
+  reloadStats?: () => void;
 }
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hideTemplateSelector, hideReport }) => {
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hideTemplateSelector, hideReport, reloadStats }) => {
   const [view, setView] = useState<View>('recording');
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -30,11 +47,135 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [report, setReport] = useState('');
   const [summary, setSummary] = useState('');
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [medicationValidation, setMedicationValidation] = useState<any>(null);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDownloadingReceta, setIsDownloadingReceta] = useState(false);
+  const [isDownloadingInforme, setIsDownloadingInforme] = useState(false);
+  const [isDownloadingExamenes, setIsDownloadingExamenes] = useState(false);
 
+  // Estado para datos médicos
+  const [medicalData, setMedicalData] = useState<MedicalData>({
+    clinicName: 'Clínica Alemana',
+    doctorName: 'Dr. MÉDICO ESPECIALISTA',
+    doctorRut: '12345678-9',
+    doctorSpecialty: 'Medicina General',
+    doctorLocation: 'CONSULTORIO',
+    patientName: 'PACIENTE EJEMPLO',
+    patientGender: 'MASCULINO',
+    patientRut: '98765432-1',
+    patientBirthDate: '01/01/1980 (43a)',
+    doctorSignature: null
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Función para manejar la carga de firma del médico
+  const handleSignatureUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validar tamaño del archivo (máximo 2MB)
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      if (file.size > maxSize) {
+        setError('La imagen es demasiado grande. Por favor selecciona una imagen menor a 2MB.');
+        return;
+      }
+
+      // Validar tipo de archivo
+      if (!file.type.startsWith('image/')) {
+        setError('Por favor selecciona un archivo de imagen válido.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        
+        // Comprimir la imagen antes de guardarla
+        compressImage(result, (compressedImage) => {
+          setMedicalData(prev => ({
+            ...prev,
+            doctorSignature: compressedImage
+          }));
+          setError(null); // Limpiar errores anteriores
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Función para comprimir imagen
+  const compressImage = (base64String: string, callback: (compressed: string) => void) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Calcular nuevas dimensiones (máximo 300x150 píxeles)
+      const maxWidth = 300;
+      const maxHeight = 150;
+      let { width, height } = img;
+      
+      if (width > height) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        // Comprimir con calidad 0.7 (70%)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        callback(compressedBase64);
+      }
+    };
+    img.src = base64String;
+  };
+
+  // Función para abrir el selector de archivo de firma
+  const openSignatureUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Función para actualizar datos médicos
+  const updateMedicalData = (field: keyof MedicalData, value: string) => {
+    setMedicalData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Función para guardar datos médicos en localStorage
+  const saveMedicalData = () => {
+    localStorage.setItem('medicalData', JSON.stringify(medicalData));
+    setView('report');
+  };
+
+  // Función para cargar datos médicos desde localStorage
+  const loadMedicalData = () => {
+    const saved = localStorage.getItem('medicalData');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setMedicalData(parsed);
+      } catch (error) {
+        console.error('Error loading medical data:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     // Fetch templates on component mount
@@ -52,6 +193,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
       }
     };
     fetchTemplates();
+
+    // Cargar datos médicos guardados
+    loadMedicalData();
 
     return () => {
       if (timerIntervalRef.current) {
@@ -140,6 +284,51 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Función para convertir HTML a texto plano
+  const htmlToPlainText = (html: string): string => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || '';
+  };
+
+  // Función para copiar texto plano
+  const copyPlainText = async () => {
+    const plainSummary = htmlToPlainText(summary);
+    const plainReport = htmlToPlainText(report);
+    const textToCopy = `Resumen: ${plainSummary}\n\nInforme: ${plainReport}`;
+    
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      // Opcional: mostrar un mensaje de éxito
+    } catch (err) {
+      setError('Error al copiar al portapapeles');
+    }
+  };
+
+  // Función para guardar en la base de datos
+  const saveToDatabase = async () => {
+    if (!reportId) {
+      setError('No hay un informe para guardar');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await updateReport(reportId, {
+        content: report,
+        summary: summary,
+        duration: timer.toString()
+      });
+      // Opcional: mostrar un mensaje de éxito
+    } catch (err) {
+      setError('Error al guardar en la base de datos');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const generateReport = async () => {
     if (!audioBlob || !selectedTemplate) {
       setError('Por favor graba un audio y selecciona una plantilla.');
@@ -160,6 +349,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
       }
       const transcribeData = await transcribeRes.json();
       const transcript = transcribeData.transcript;
+      
+      // Guardar la validación de medicamentos si está disponible
+      if (transcribeData.medicationValidation) {
+        setMedicationValidation(transcribeData.medicationValidation);
+      }
 
       const reportRes = await fetch(`${BASE_URL}/api/reports`, {
         method: 'POST',
@@ -178,7 +372,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
       const reportData = await reportRes.json();
       setReport(reportData.content || '');
       setSummary(reportData.summary || '');
+      setReportId(reportData.id || null);
       setView('report');
+      
+      // Recargar estadísticas si la función está disponible
+      if (reloadStats) {
+        reloadStats();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
     } finally {
@@ -194,6 +394,149 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     setError(null);
     setReport('');
     setSummary('');
+    setReportId(null);
+    setMedicationValidation(null);
+  };
+
+  // Función para descargar la receta médica en PDF
+  const downloadReceta = async () => {
+    if (!reportId) {
+      setError('No hay un informe para generar la receta');
+      return;
+    }
+
+    setIsDownloadingReceta(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/reports/${reportId}/receta`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(medicalData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al generar la receta médica');
+      }
+      
+      const htmlContent = await response.text();
+      
+      // Crear una nueva ventana con el contenido HTML
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+      } else {
+        // Fallback: descargar como archivo HTML
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `receta_medica_${reportId}.html`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      setError('Error al descargar la receta médica');
+    } finally {
+      setIsDownloadingReceta(false);
+    }
+  };
+
+  // Función para descargar el informe completo en PDF
+  const downloadInforme = async () => {
+    if (!reportId) {
+      setError('No hay un informe para descargar');
+      return;
+    }
+
+    setIsDownloadingInforme(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/reports/${reportId}/informe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(medicalData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al generar el informe');
+      }
+      
+      const htmlContent = await response.text();
+      
+      // Crear una nueva ventana con el contenido HTML
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+      } else {
+        // Fallback: descargar como archivo HTML
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `informe_medico_${reportId}.html`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      setError('Error al descargar el informe');
+    } finally {
+      setIsDownloadingInforme(false);
+    }
+  };
+
+  // Función para descargar el PDF de exámenes médicos
+  const downloadExamenes = async () => {
+    if (!reportId) {
+      setError('No hay un informe para generar el documento de exámenes');
+      return;
+    }
+
+    setIsDownloadingExamenes(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/reports/${reportId}/examenes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(medicalData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al generar el documento de exámenes');
+      }
+      
+      const htmlContent = await response.text();
+      
+      // Crear una nueva ventana con el contenido HTML
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+      } else {
+        // Fallback: descargar como archivo HTML
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `examenes_medicos_${reportId}.html`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      setError('Error al descargar el documento de exámenes');
+    } finally {
+      setIsDownloadingExamenes(false);
+    }
   };
 
   const renderRecordingView = () => (
@@ -274,20 +617,52 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
         
         <div className={styles.reportSection}>
           <h3>Resumen de atención médica</h3>
-          <div className={styles.summaryBox} dangerouslySetInnerHTML={{ __html: summary.replace('```html', '') }} />
+          <Editor
+            value={summary.replace('```html', '')}
+            onChange={setSummary}
+            placeholder="Edita el resumen aquí..."
+          />
         </div>
 
         <div className={styles.reportSection}>
           <h3>Informe de la atención médica</h3>
-          <div className={styles.summaryBox} dangerouslySetInnerHTML={{ __html: report.replace('```html', '') }} />
+          <Editor
+            value={report.replace('```html', '')}
+            onChange={setReport}
+            placeholder="Edita el informe aquí..."
+          />
         </div>
 
+        {/* Validación de medicamentos con IA */}
+        {medicationValidation && (
+          <div className={styles.reportSection}>
+            <AIMedicationValidation 
+              validation={medicationValidation}
+              extractedMedications={medicationValidation.extractedMedications}
+              summary={medicationValidation.summary}
+              aiAnalysis={medicationValidation.aiAnalysis}
+            />
+          </div>
+        )}
+
         <div className={styles.actions}>
-          <button className={styles.secondaryBtn} onClick={() => navigator.clipboard.writeText(`Resumen: ${summary}\n\nInforme: ${report}`)}>
+          <button className={styles.secondaryBtn} onClick={copyPlainText}>
             <Copy size={16} /> Copiar
           </button>
-          <button className={styles.primaryBtn}>
-            <Download size={16} /> Guardar
+          <button className={styles.primaryBtn} onClick={saveToDatabase} disabled={isSaving}>
+            <Download size={16} /> {isSaving ? 'Guardando...' : 'Guardar'}
+          </button>
+          <button className={styles.secondaryBtn} onClick={() => setView('medicalData')}>
+            <Settings size={16} /> Editar Datos
+          </button>
+          <button className={styles.secondaryBtn} onClick={downloadReceta} disabled={isDownloadingReceta}>
+            <Receipt size={16} /> {isDownloadingReceta ? 'Descargando...' : 'Descargar Receta'}
+          </button>
+          <button className={styles.secondaryBtn} onClick={downloadInforme} disabled={isDownloadingInforme}>
+            <FileDown size={16} /> {isDownloadingInforme ? 'Descargando...' : 'Descargar Informe'}
+          </button>
+          <button className={styles.secondaryBtn} onClick={downloadExamenes} disabled={isDownloadingExamenes}>
+            <FileDown size={16} /> {isDownloadingExamenes ? 'Descargando...' : 'Descargar Exámenes'}
           </button>
         </div>
 
@@ -301,11 +676,161 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     )}</>
   );
 
+  const renderMedicalDataView = () => (
+    <div className={styles.card}>
+      <h2>Configuración de Datos Médicos</h2>
+      
+      <div className={styles.medicalDataForm}>
+        <div className={styles.formSection}>
+          <h3><User size={16} /> Datos del Médico</h3>
+          
+          <div className={styles.formGroup}>
+            <label>Nombre de la Clínica:</label>
+            <input
+              type="text"
+              value={medicalData.clinicName}
+              onChange={(e) => updateMedicalData('clinicName', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Nombre del Médico:</label>
+            <input
+              type="text"
+              value={medicalData.doctorName}
+              onChange={(e) => updateMedicalData('doctorName', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>RUT del Médico:</label>
+            <input
+              type="text"
+              value={medicalData.doctorRut}
+              onChange={(e) => updateMedicalData('doctorRut', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Especialidad:</label>
+            <input
+              type="text"
+              value={medicalData.doctorSpecialty}
+              onChange={(e) => updateMedicalData('doctorSpecialty', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Lugar de Consulta:</label>
+            <input
+              type="text"
+              value={medicalData.doctorLocation}
+              onChange={(e) => updateMedicalData('doctorLocation', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Firma del Médico:</label>
+            <div className={styles.signatureSection}>
+              <small className={styles.helpText}>
+                Formatos: JPG, PNG. Tamaño máximo: 2MB. La imagen se comprimirá automáticamente.
+              </small>
+              {medicalData.doctorSignature ? (
+                <div className={styles.signaturePreview}>
+                  <img src={medicalData.doctorSignature} alt="Firma del médico" />
+                  <button 
+                    onClick={() => updateMedicalData('doctorSignature', '')}
+                    className={styles.removeSignature}
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ) : (
+                <button onClick={openSignatureUpload} className={styles.uploadBtn}>
+                  Subir Firma
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleSignatureUpload}
+                style={{ display: 'none' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.formSection}>
+          <h3><UserCheck size={16} /> Datos del Paciente</h3>
+          
+          <div className={styles.formGroup}>
+            <label>Nombre del Paciente:</label>
+            <input
+              type="text"
+              value={medicalData.patientName}
+              onChange={(e) => updateMedicalData('patientName', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Género:</label>
+            <select
+              value={medicalData.patientGender}
+              onChange={(e) => updateMedicalData('patientGender', e.target.value)}
+              className={styles.select}
+            >
+              <option value="MASCULINO">Masculino</option>
+              <option value="FEMENINO">Femenino</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>RUT del Paciente:</label>
+            <input
+              type="text"
+              value={medicalData.patientRut}
+              onChange={(e) => updateMedicalData('patientRut', e.target.value)}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Fecha de Nacimiento:</label>
+            <input
+              type="text"
+              value={medicalData.patientBirthDate}
+              onChange={(e) => updateMedicalData('patientBirthDate', e.target.value)}
+              className={styles.input}
+              placeholder="DD/MM/YYYY (XXa)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.actions}>
+        <button onClick={saveMedicalData} className={styles.primaryBtn}>
+          Guardar Datos
+        </button>
+        <button onClick={() => setView('report')} className={styles.secondaryBtn}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.container}>
       {view === 'recording' && renderRecordingView()}
       {view === 'preview' && renderPreviewView()}
       {view === 'report' && renderReportView()}
+      {view === 'medicalData' && renderMedicalDataView()}
     </div>
   );
 };

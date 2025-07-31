@@ -1,6 +1,7 @@
 import { Schema } from 'mongoose';
+import { Report } from './report';
 
-export const ReportSchemaMongo = new Schema(
+export const ReportSchemaMongo = new Schema<Report>(
     {
         userId: { type: String, required: true },
         templateId: { type: String },

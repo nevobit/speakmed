@@ -133,6 +133,15 @@ h2 {
 .primaryBtn:hover {
   background-color: #1e293b;
 }
+
+.primaryBtn:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.primaryBtn:disabled:hover {
+  background-color: #94a3b8;
+}
 .secondaryBtn {
   background-color: #f1f5f9;
   color: #334155;
@@ -182,6 +191,87 @@ h2 {
   font-size: 1.4rem;
   background-color: #f8fafc;
   /* min-height: 80px; */
+}
+
+.editableTextarea {
+  width: 100%;
+  min-height: 200px;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem;
+  padding: 1.2rem;
+  font-size: 1.4rem;
+  resize: vertical;
+  background-color: #f8fafc;
+  font-family: inherit;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.editableTextarea:focus {
+  outline: none;
+  border-color: #1362bc;
+  box-shadow: 0 0 0 3px rgba(19, 98, 188, 0.1);
+}
+
+.editorContainer {
+  width: 100%;
+}
+
+.quillEditor {
+  width: 100%;
+}
+
+.editorContainer .ql-container {
+  min-height: 200px;
+  font-size: 1.4rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0 0 0.8rem 0.8rem;
+  background-color: #f8fafc;
+}
+
+.editorContainer .ql-toolbar {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem 0.8rem 0 0;
+  background-color: #fff;
+  border-bottom: none;
+}
+
+.editorContainer .ql-editor {
+  min-height: 200px;
+  font-size: 1.4rem;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.editorContainer .ql-editor.ql-blank::before {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.editorContainer .ql-toolbar button:hover,
+.editorContainer .ql-toolbar .ql-picker-label:hover {
+  color: #1362bc;
+}
+
+.editorContainer .ql-toolbar button:hover .ql-stroke,
+.editorContainer .ql-toolbar .ql-picker-label:hover .ql-stroke {
+  stroke: #1362bc;
+}
+
+.editorContainer .ql-toolbar button:hover .ql-fill {
+  fill: #1362bc;
+}
+
+.editorContainer .ql-toolbar .ql-active {
+  color: #1362bc;
+}
+
+.editorContainer .ql-toolbar .ql-active .ql-stroke {
+  stroke: #1362bc;
+}
+
+.editorContainer .ql-toolbar .ql-active .ql-fill {
+  fill: #1362bc;
 }
 .reportSection .ql-toolbar.ql-snow {
   display: none;
@@ -245,4 +335,118 @@ h2 {
 }
 .pauseBtn:hover {
   background: #1e293b;
+}
+
+/* Estilos para el formulario de datos médicos */
+.medicalDataForm {
+  width: 100%;
+  max-width: 60rem;
+  margin-bottom: 2.4rem;
+}
+
+.formSection {
+  margin-bottom: 3.2rem;
+  padding: 2.4rem;
+  background: #f8fafc;
+  border-radius: 1.2rem;
+  border: 1px solid #e2e8f0;
+}
+
+.formSection h3 {
+  color: #1362bc;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.formGroup {
+  margin-bottom: 1.6rem;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 0.8rem;
+}
+
+.input, .select {
+  width: 100%;
+  padding: 1.2rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.8rem;
+  font-size: 1.4rem;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: #1362bc;
+  box-shadow: 0 0 0 3px rgba(19, 98, 188, 0.1);
+}
+
+.signatureSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.uploadBtn {
+  padding: 1.2rem 2.4rem;
+  background: #1362bc;
+  color: #fff;
+  border: none;
+  border-radius: 0.8rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: fit-content;
+}
+
+.uploadBtn:hover {
+  background: #1e293b;
+}
+
+.signaturePreview {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  align-items: flex-start;
+}
+
+.signaturePreview img {
+  max-width: 20rem;
+  max-height: 10rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.8rem;
+  object-fit: contain;
+}
+
+.removeSignature {
+  padding: 0.8rem 1.6rem;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.removeSignature:hover {
+  background: #b91c1c;
+}
+
+.helpText {
+  color: #64748b;
+  font-size: 1.2rem;
+  margin-bottom: 0.8rem;
+  display: block;
 } 

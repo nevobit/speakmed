@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import AudioRecorder from './AudioRecorder/AudioRecorder';
+import MedicationValidation from './MedicationValidation';
+import AIMedicationValidation from './AIMedicationValidation';
 
 const TranscripcionDiarizacion: React.FC = () => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -43,6 +45,17 @@ const TranscripcionDiarizacion: React.FC = () => {
         <div style={{ marginTop: 24 }}>
           <h3>Transcripción</h3>
           <div style={{ background: '#f4f6fb', borderRadius: 8, padding: 16 }}>{result.transcript}</div>
+          
+          {/* Validación de medicamentos con IA */}
+          {result.medicationValidation && (
+            <AIMedicationValidation 
+              validation={result.medicationValidation}
+              extractedMedications={result.extractedMedications}
+              summary={result.summary}
+              aiAnalysis={result.medicationValidation.aiAnalysis}
+            />
+          )}
+          
           <h3 style={{ marginTop: 16 }}>Diarización</h3>
           <ul>
             {result.diarization && result.diarization.map((d: any, i: number) => (

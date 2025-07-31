@@ -8,6 +8,7 @@ import {
   User,
   BookOpen,
   Download,
+  Brain,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { NavLink } from 'react-router-dom';
@@ -53,7 +54,7 @@ const Sidebar: React.FC = () => {
               <BookOpen size={20} /> Vademécum
             </NavLink>
           </li>
-          <li>
+          {/* <li>
             <NavLink to="/descargar-receta" className={({ isActive }) => isActive ? styles.active : ''}>
               <Download size={20} /> Descargar receta
             </NavLink>
@@ -62,10 +63,20 @@ const Sidebar: React.FC = () => {
             <NavLink to="/descargar-examenes" className={({ isActive }) => isActive ? styles.active : ''}>
               <Download size={20} /> Descargar exámenes
             </NavLink>
-          </li>
+          </li> */}
           <li>
             <NavLink to="/transcripcion-diarizacion" className={({ isActive }) => isActive ? styles.active : ''}>
               <Mic size={20} /> Transcripción IA
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/validacion-medicamentos" className={({ isActive }) => isActive ? styles.active : ''}>
+              <FileText size={20} /> Validar Medicamentos
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/validacion-ia" className={({ isActive }) => isActive ? styles.active : ''}>
+              <Brain size={20} /> Validación Automática
             </NavLink>
           </li>
         </ul>

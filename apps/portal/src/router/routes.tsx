@@ -13,6 +13,8 @@ import Vademecum from '../components/Vademecum';
 import DescargarReceta from '../components/DescargarReceta';
 import DescargarExamenes from '../components/DescargarExamenes';
 import TranscripcionDiarizacion from '../components/TranscripcionDiarizacion';
+import ManualMedicationValidation from '../components/ManualMedicationValidation';
+import AIMedicationValidation from '../components/AIMedicationValidation';
 
 export const routes: RouteObject[] = [
   {
@@ -88,6 +90,14 @@ export const routes: RouteObject[] = [
           {
             path: '/transcripcion-diarizacion',
             element: <TranscripcionDiarizacion />
+          },
+          {
+            path: '/validacion-medicamentos',
+            element: <ManualMedicationValidation />
+          },
+          {
+            path: '/validacion-ia',
+            element: <AIMedicationValidation />
           }
         ]
       }

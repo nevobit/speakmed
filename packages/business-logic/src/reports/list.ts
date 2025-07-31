@@ -3,6 +3,6 @@ import { User, ReportSchemaMongo } from "@repo/entities"
 
 export const getAllReports = async () => {
     const model = getModel<User>(Collection.REPORTS, ReportSchemaMongo)
-    const reports = await model.find({});
+    const reports = await model.find({}).sort({ createdAt: -1 });
     return reports;
 }
