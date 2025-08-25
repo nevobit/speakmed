@@ -207,6 +207,9 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
+      esbuild:
+        specifier: ^0.23.0
+        version: 0.23.1
       fastify:
         specifier: ^4.28.1
         version: 4.29.1
@@ -242,9 +245,6 @@ importers:
       auto-changelog:
         specifier: ^2.4.0
         version: 2.5.0
-      esbuild:
-        specifier: ^0.23.0
-        version: 0.23.1
       release-it:
         specifier: ^17.6.0
         version: 17.11.0(typescript@5.8.3)
