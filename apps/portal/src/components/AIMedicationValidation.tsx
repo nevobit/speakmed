@@ -256,8 +256,6 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
       summary 
     });
   }
-
-  // Si no hay props, mostrar el formulario de entrada
   return (
     <div style={{ 
       maxWidth: 800, 
