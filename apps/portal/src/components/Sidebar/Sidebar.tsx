@@ -7,7 +7,6 @@ import {
   CreditCard,
   User,
   BookOpen,
-  Download,
   Brain,
 } from 'lucide-react';
 import styles from './Sidebar.module.css';

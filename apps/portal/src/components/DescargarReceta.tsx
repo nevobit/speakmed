@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, FileText, User, Calendar, Phone } from 'lucide-react';
+import { Download, FileText, User} from 'lucide-react';
 
 interface Medication {
   id: string;

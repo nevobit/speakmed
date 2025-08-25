@@ -3,7 +3,6 @@ import styles from './AudioRecorder.module.css';
 import { Mic, StopCircle, FileText, Download, Copy, RefreshCw, FileDown, Receipt, Settings, User, UserCheck } from 'lucide-react';
 import Editor from './Editor';
 import { updateReport } from '../../api';
-import MedicationValidation from '../MedicationValidation';
 import AIMedicationValidation from '../AIMedicationValidation';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -640,7 +639,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
               validation={medicationValidation}
               extractedMedications={medicationValidation.extractedMedications}
               summary={medicationValidation.summary}
-              aiAnalysis={medicationValidation.aiAnalysis}
+              // aiAnalysis={medicationValidation.aiAnalysis}
             />
           </div>
         )}

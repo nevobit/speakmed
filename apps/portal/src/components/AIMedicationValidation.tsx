@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
 import { apiInstance } from '@/api';
-import { Brain, Zap, AlertTriangle, CheckCircle, Search, Clock } from 'lucide-react';
+import { Brain, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
 interface AIMedicationValidationProps {
   validation?: any;
   extractedMedications?: string[];
   summary?: any;
-  aiAnalysis?: string;
 }
 
 const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({ 
   validation, 
   extractedMedications, 
-  summary,
-  aiAnalysis 
+  summary, 
 }) => {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,11 +44,10 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
   };
 
   const renderValidationResult = (data: any) => {
-    const { found, notFound, suggestions, summary } = data;
+    const { found, suggestions, summary } = data;
 
     return (
       <div style={{ marginTop: '2rem' }}>
-        {/* Resumen de validación */}
         <div style={{ 
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
@@ -105,7 +102,6 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
           </div>
         </div>
 
-        {/* Medicamentos encontrados */}
         {found && found.length > 0 && (
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{ 

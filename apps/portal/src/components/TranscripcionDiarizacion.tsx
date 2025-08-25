@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AudioRecorder from './AudioRecorder/AudioRecorder';
-import MedicationValidation from './MedicationValidation';
+// import MedicationValidation from './MedicationValidation';
 import AIMedicationValidation from './AIMedicationValidation';
 
 const TranscripcionDiarizacion: React.FC = () => {
@@ -52,7 +52,7 @@ const TranscripcionDiarizacion: React.FC = () => {
               validation={result.medicationValidation}
               extractedMedications={result.extractedMedications}
               summary={result.summary}
-              aiAnalysis={result.medicationValidation.aiAnalysis}
+              // aiAnalysis={result.medicationValidation.aiAnalysis}
             />
           )}
           
