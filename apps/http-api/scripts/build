@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
-set -euo pipefail
+set -euo
 
 rm -rf dist
 mkdir -p dist
