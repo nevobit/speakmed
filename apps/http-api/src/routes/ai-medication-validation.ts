@@ -1,16 +1,28 @@
 import { RouteOptions } from 'fastify';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import axios from 'axios';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-// Cargar solo la base de datos de Chile
-const chileVademecum: string[] = JSON.parse(
+// Cargar las bases de datos del Vademecum
+const chileList: string[] = JSON.parse(
     readFileSync(join(__dirname, '../../data/vademecum_cl.json'), 'utf8'),
 );
 
-// Función para normalizar texto
+const colList: string[] = JSON.parse(
+    readFileSync(join(__dirname, '../../data/vademecum_co.json'), 'utf8'),
+);
+
+const argList: string[] = JSON.parse(
+    readFileSync(join(__dirname, '../../data/vademecum_ar.json'), 'utf8'),
+);
+
+const vademecumData: Record<string, string[]> = {
+    ARG: argList,
+    MEX: colList,
+    COL: colList,
+    CHL: chileList,
+};
+
+// Función para normalizar texto (eliminar acentos, convertir a minúsculas, etc.)
 function normalizeText(text: string): string {
     return text
         .toLowerCase()
@@ -21,85 +33,14 @@ function normalizeText(text: string): string {
         .trim();
 }
 
-// Función para extraer medicamentos usando IA
-export async function extractMedicationsWithAI(text: string): Promise<string[]> {
-    if (!OPENAI_API_KEY) {
-        console.warn('OpenAI API key not configured, using basic extraction');
-        return extractMedicationsBasic(text);
-    }
-
-    const prompt = `Eres un experto farmacéutico chileno. Analiza el siguiente texto de una consulta médica y extrae TODOS los nombres de medicamentos mencionados.
-
-IMPORTANTE:
-- Extrae solo los nombres de medicamentos, no dosis ni indicaciones
-- Incluye nombres comerciales y genéricos
-- Devuelve SOLO una lista JSON de strings, sin explicaciones adicionales
-- Si no hay medicamentos, devuelve un array vacío []
-
-Ejemplos de medicamentos que debes detectar:
-- Paracetamol, Ibuprofeno, Aspirina
-- Nombres comerciales como: Dolo-Neurobion, Advil, etc.
-- Antibióticos: Amoxicilina, Azitromicina, etc.
-- Medicamentos especializados: Omeprazol, Metformina, etc.
-
-Texto a analizar:
-"${text}"
-
-Lista de medicamentos (solo JSON):`;
-
-    try {
-        const response = await axios.post(
-            'https://api.openai.com/v1/chat/completions',
-            {
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'Eres un farmacéutico experto especializado en identificar medicamentos en textos médicos. Responde solo con JSON válido.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                max_tokens: 500,
-                temperature: 0.1
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                timeout: 15000
-            }
-        );
-
-        const content = response.data.choices[0].message.content.trim();
-
-        // Intentar parsear el JSON
-        try {
-            const medications = JSON.parse(content);
-            if (Array.isArray(medications)) {
-                return medications.filter(med => typeof med === 'string' && med.trim().length > 0);
-            }
-        } catch (parseError) {
-            console.warn('Error parsing AI response:', parseError);
-        }
-
-        // Fallback a extracción básica
-        return extractMedicationsBasic(text);
-    } catch (error) {
-        console.error('Error calling OpenAI API:', error);
-        return extractMedicationsBasic(text);
-    }
-}
-
-// Función de extracción básica como fallback
-function extractMedicationsBasic(text: string): string[] {
+// Función para extraer posibles nombres de medicamentos del texto
+function extractMedicationNames(text: string): string[] {
     const normalizedText = normalizeText(text);
     const words = normalizedText.split(' ');
     const medications: string[] = [];
 
+    // Buscar palabras que podrían ser nombres de medicamentos
+    // (palabras con 3 o más caracteres que no son artículos, preposiciones, etc.)
     const stopWords = new Set([
         'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
         'de', 'del', 'a', 'al', 'con', 'por', 'para', 'sin',
@@ -107,11 +48,17 @@ function extractMedicationsBasic(text: string): string[] {
         'que', 'cual', 'quien', 'cuyo', 'donde', 'cuando',
         'como', 'porque', 'pues', 'ya', 'muy', 'mas', 'menos',
         'bien', 'mal', 'mejor', 'peor', 'mas', 'menos',
-        'mg', 'ml', 'g', 'kg', 'mcg', 'ui', 'mci', 'cc',
-        'cada', 'hora', 'horas', 'dia', 'dias', 'semana', 'semanas',
-        'mes', 'meses', 'año', 'años', 'vez', 'veces'
+        'mg', 'ml', 'g', 'kg', 'mcg', 'ui', 'mci', 'cc'
     ]);
 
+    // Primero, agregar palabras individuales que podrían ser medicamentos
+    for (const word of words) {
+        if (word.length >= 3 && !stopWords.has(word)) {
+            medications.push(word);
+        }
+    }
+
+    // Luego, buscar secuencias de palabras que podrían formar nombres de medicamentos
     for (let i = 0; i < words.length; i++) {
         for (let j = i + 1; j <= Math.min(i + 5, words.length); j++) {
             const phrase = words.slice(i, j).join(' ');
@@ -121,124 +68,181 @@ function extractMedicationsBasic(text: string): string[] {
         }
     }
 
-    return [...new Set(medications)];
+    return [...new Set(medications)]; // Eliminar duplicados
 }
 
-// Función para validar medicamentos con IA
-export async function validateMedicationsWithAI(medications: string[]): Promise<{
-    found: Array<{ name: string; similarity: number; original: string; confidence: string }>;
-    notFound: string[];
-    suggestions: Array<{ original: string; suggestions: string[]; reasoning: string }>;
-    aiAnalysis: string;
-}> {
-    if (!OPENAI_API_KEY) {
-        return validateMedicationsBasic(medications);
-    }
+// Función para calcular similitud entre dos strings usando múltiples algoritmos
+function calculateSimilarity(str1: string, str2: string): number {
+    const normalized1 = normalizeText(str1);
+    const normalized2 = normalizeText(str2);
 
-    const vademecumText = chileVademecum.slice(0, 1000).join(', '); // Limitar para el prompt
+    if (normalized1 === normalized2) return 1.0;
 
-    const prompt = `Eres un farmacéutico experto chileno. Valida los siguientes medicamentos contra el Vademecum de Chile.
+    // 1. Distancia de Levenshtein
+    const levenshteinDistance = calculateLevenshteinDistance(normalized1, normalized2);
+    const maxLength = Math.max(normalized1.length, normalized2.length);
+    const levenshteinSimilarity = 1 - (levenshteinDistance / maxLength);
 
-Medicamentos a validar: ${medications}
+    // 2. Similitud de Jaro-Winkler mejorada
+    const jaroSimilarity = calculateJaroSimilarity(normalized1, normalized2);
 
-Base de datos del Vademecum (primeros 1000 medicamentos): ${vademecumText}
+    // 3. Similitud de caracteres comunes
+    const commonCharSimilarity = calculateCommonCharSimilarity(normalized1, normalized2);
 
-Para cada medicamento, determina:
-1. Si está en el Vademecum (con similitud > 0.8)
-2. Si no está, sugiere alternativas similares
-3. Proporciona un análisis de confianza
+    // 4. Similitud de palabras (para casos como "paracetamol" vs "apracetamol")
+    const wordSimilarity = calculateWordSimilarity(normalized1, normalized2);
 
-Responde en este formato JSON exacto:
-{
-  "found": [
-    {
-      "name": "NOMBRE_EXACTO_VADEMECUM",
-      "similarity": 0.95,
-      "original": "medicamento_original",
-      "confidence": "ALTA"
-    }
-  ],
-  "notFound": ["medicamento_no_encontrado"],
-  "suggestions": [
-    {
-      "original": "medicamento_original",
-      "suggestions": ["sugerencia1", "sugerencia2"],
-      "reasoning": "Explicación de por qué se sugiere"
-    }
-  ],
-  "aiAnalysis": "Análisis general de la validación"
-}`;
+    // Combinar todas las similitudes con pesos
+    const combinedSimilarity = (
+        levenshteinSimilarity * 0.4 +
+        jaroSimilarity * 0.3 +
+        commonCharSimilarity * 0.2 +
+        wordSimilarity * 0.1
+    );
 
-    try {
-        const response = await axios.post(
-            'https://api.openai.com/v1/chat/completions',
-            {
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'Eres un farmacéutico experto chileno especializado en validación de medicamentos. Responde solo con JSON válido.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                max_tokens: 1000,
-                temperature: 0.1
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                timeout: 20000
-            }
-        );
+    return Math.min(1.0, Math.max(0.0, combinedSimilarity));
+}
 
-        const content = response.data.choices[0].message.content.trim();
+// Función para calcular la distancia de Levenshtein
+function calculateLevenshteinDistance(str1: string, str2: string): number {
+    const matrix: number[][] = [];
 
-        try {
-            const result = JSON.parse(content);
-            return {
-                found: result.found || [],
-                notFound: result.notFound || [],
-                suggestions: result.suggestions || [],
-                aiAnalysis: result.aiAnalysis || 'Análisis no disponible'
-            };
-        } catch (parseError) {
-            console.warn('Error parsing AI validation response:', parseError);
-            return validateMedicationsBasic(medications);
+    // Inicializar matriz
+    for (let j = 0; j <= str2.length; j++) {
+        matrix[j] = [];
+        for (let i = 0; i <= str1.length; i++) {
+            matrix[j]![i] = 0;
         }
-    } catch (error) {
-        console.error('Error calling OpenAI API for validation:', error);
-        return validateMedicationsBasic(medications);
     }
+
+    for (let i = 0; i <= str1.length; i++) {
+        matrix[0]![i] = i;
+    }
+
+    for (let j = 0; j <= str2.length; j++) {
+        matrix[j]![0] = j;
+    }
+
+    for (let j = 1; j <= str2.length; j++) {
+        for (let i = 1; i <= str1.length; i++) {
+            const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            matrix[j]![i] = Math.min(
+                matrix[j]![i - 1]! + 1, // eliminación
+                matrix[j - 1]![i]! + 1, // inserción
+                matrix[j - 1]![i - 1]! + indicator // sustitución
+            );
+        }
+    }
+
+    return matrix[str2.length]![str1.length]!;
 }
 
-// Función de validación básica como fallback
-function validateMedicationsBasic(medications: string[]): {
-    found: Array<{ name: string; similarity: number; original: string; confidence: string }>;
+// Función para calcular similitud de Jaro mejorada
+function calculateJaroSimilarity(str1: string, str2: string): number {
+    if (str1 === str2) return 1.0;
+    if (str1.length === 0 || str2.length === 0) return 0.0;
+
+    const matchWindow = Math.floor(Math.max(str1.length, str2.length) / 2) - 1;
+    if (matchWindow < 0) return 0.0;
+
+    let matches1 = new Array(str1.length).fill(false);
+    let matches2 = new Array(str2.length).fill(false);
+
+    // Encontrar coincidencias
+    for (let i = 0; i < str1.length; i++) {
+        const start = Math.max(0, i - matchWindow);
+        const end = Math.min(str2.length, i + matchWindow + 1);
+
+        for (let j = start; j < end; j++) {
+            if (!matches2[j] && str1[i] === str2[j]) {
+                matches1[i] = true;
+                matches2[j] = true;
+                break;
+            }
+        }
+    }
+
+    const matches1Str = str1.split('').filter((_, i) => matches1[i]).join('');
+    const matches2Str = str2.split('').filter((_, i) => matches2[i]).join('');
+
+    if (matches1Str.length === 0) return 0.0;
+
+    // Calcular transposiciones
+    let transpositions = 0;
+    for (let i = 0; i < matches1Str.length; i++) {
+        if (matches1Str[i] !== matches2Str[i]) {
+            transpositions++;
+        }
+    }
+
+    const m = matches1Str.length;
+    const t = transpositions / 2;
+
+    return (m / str1.length + m / str2.length + (m - t) / m) / 3;
+}
+
+// Función para calcular similitud basada en caracteres comunes
+function calculateCommonCharSimilarity(str1: string, str2: string): number {
+    const chars1 = new Set(str1.split(''));
+    const chars2 = new Set(str2.split(''));
+
+    const intersection = new Set([...chars1].filter(x => chars2.has(x)));
+    const union = new Set([...chars1, ...chars2]);
+
+    return intersection.size / union.size;
+}
+
+// Función para calcular similitud de palabras (especialmente útil para errores tipográficos)
+function calculateWordSimilarity(str1: string, str2: string): number {
+    // Para palabras cortas, usar similitud de caracteres
+    if (str1.length <= 3 || str2.length <= 3) {
+        return calculateCommonCharSimilarity(str1, str2);
+    }
+
+    // Para palabras más largas, buscar patrones de caracteres similares
+    let similarChars = 0;
+    const minLength = Math.min(str1.length, str2.length);
+
+    for (let i = 0; i < minLength; i++) {
+        if (str1[i] === str2[i]) {
+            similarChars++;
+        } else if (i > 0 && i < minLength - 1) {
+            // Verificar transposiciones de caracteres adyacentes
+            if (str1[i] === str2[i + 1] && str1[i + 1] === str2[i]) {
+                similarChars += 0.8; // Penalizar ligeramente las transposiciones
+                i++; // Saltar el siguiente carácter
+            }
+        }
+    }
+
+    return similarChars / Math.max(str1.length, str2.length);
+}
+
+// Función para validar medicamentos contra el Vademecum
+function validateMedications(text: string, country: string): {
+    found: Array<{ name: string; similarity: number; original: string }>;
     notFound: string[];
-    suggestions: Array<{ original: string; suggestions: string[]; reasoning: string }>;
-    aiAnalysis: string;
+    suggestions: Array<{ original: string; suggestions: string[] }>;
 } {
-    const found: Array<{ name: string; similarity: number; original: string; confidence: string }> = [];
+    const medications = extractMedicationNames(text);
+    const vademecum = vademecumData[country] || [];
+
+    const found: Array<{ name: string; similarity: number; original: string }> = [];
     const notFound: string[] = [];
-    const suggestions: Array<{ original: string; suggestions: string[]; reasoning: string }> = [];
+    const suggestions: Array<{ original: string; suggestions: string[] }> = [];
 
     for (const medication of medications) {
         let bestMatch: { name: string; similarity: number } | null = null;
         const localSuggestions: string[] = [];
 
-        for (const vademecumItem of chileVademecum) {
+        for (const vademecumItem of vademecum) {
             const similarity = calculateSimilarity(medication, vademecumItem);
 
-            if (similarity > 0.8) {
+            if (similarity > 0.75) {
                 if (!bestMatch || similarity > bestMatch.similarity) {
                     bestMatch = { name: vademecumItem, similarity };
                 }
-            } else if (similarity > 0.6) {
+            } else if (similarity > 0.5) {
                 localSuggestions.push(vademecumItem);
             }
         }
@@ -247,62 +251,20 @@ function validateMedicationsBasic(medications: string[]): {
             found.push({
                 name: bestMatch.name,
                 similarity: bestMatch.similarity,
-                original: medication,
-                confidence: bestMatch.similarity > 0.9 ? 'ALTA' : 'MEDIA'
+                original: medication
             });
         } else {
             notFound.push(medication);
             if (localSuggestions.length > 0) {
                 suggestions.push({
                     original: medication,
-                    suggestions: localSuggestions.slice(0, 3),
-                    reasoning: 'Medicamentos similares encontrados en el Vademecum'
+                    suggestions: localSuggestions.slice(0, 5) // Máximo 5 sugerencias
                 });
             }
         }
     }
 
-    return {
-        found,
-        notFound,
-        suggestions,
-        aiAnalysis: 'Validación realizada con algoritmo básico de similitud'
-    };
-}
-
-// Función para calcular similitud
-function calculateSimilarity(str1: string, str2: string): number {
-    const normalized1 = normalizeText(str1);
-    const normalized2 = normalizeText(str2);
-
-    if (normalized1 === normalized2) return 1.0;
-
-    const maxLength = Math.max(normalized1.length, normalized2.length);
-    const minLength = Math.min(normalized1.length, normalized2.length);
-
-    if (minLength === 0) return 0.0;
-
-    let matches = 0;
-    let transpositions = 0;
-    const matchWindow = Math.floor(maxLength / 2) - 1;
-
-    for (let i = 0; i < normalized1.length; i++) {
-        const start = Math.max(0, i - matchWindow);
-        const end = Math.min(normalized2.length, i + matchWindow + 1);
-
-        for (let j = start; j < end; j++) {
-            if (normalized1[i] === normalized2[j]) {
-                matches++;
-                if (i !== j) transpositions++;
-                break;
-            }
-        }
-    }
-
-    if (matches === 0) return 0.0;
-
-    const similarity = (matches / normalized1.length + matches / normalized2.length + (matches - transpositions / 2) / matches) / 3;
-    return Math.min(1.0, similarity);
+    return { found, notFound, suggestions };
 }
 
 export const aiMedicationValidationRoute: RouteOptions = {
@@ -311,63 +273,50 @@ export const aiMedicationValidationRoute: RouteOptions = {
     schema: {
         body: {
             type: 'object',
-            required: ['text'],
+            required: ['text', 'country'],
             properties: {
-                text: { type: 'string' }
+                text: { type: 'string' },
+                country: { type: 'string', enum: ['ARG', 'CHL', 'COL', 'MEX'] }
             }
         },
         response: {
             200: {
                 type: 'object',
                 properties: {
-                    extractedMedications: {
+                    found: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                name: { type: 'string' },
+                                similarity: { type: 'number' },
+                                original: { type: 'string' }
+                            }
+                        }
+                    },
+                    notFound: {
                         type: 'array',
                         items: { type: 'string' }
                     },
-                    validation: {
-                        type: 'object',
-                        properties: {
-                            found: {
-                                type: 'array',
-                                items: {
-                                    type: 'object',
-                                    properties: {
-                                        name: { type: 'string' },
-                                        similarity: { type: 'number' },
-                                        original: { type: 'string' },
-                                        confidence: { type: 'string' }
-                                    }
+                    suggestions: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                original: { type: 'string' },
+                                suggestions: {
+                                    type: 'array',
+                                    items: { type: 'string' }
                                 }
-                            },
-                            notFound: {
-                                type: 'array',
-                                items: { type: 'string' }
-                            },
-                            suggestions: {
-                                type: 'array',
-                                items: {
-                                    type: 'object',
-                                    properties: {
-                                        original: { type: 'string' },
-                                        suggestions: {
-                                            type: 'array',
-                                            items: { type: 'string' }
-                                        },
-                                        reasoning: { type: 'string' }
-                                    }
-                                }
-                            },
-                            aiAnalysis: { type: 'string' }
+                            }
                         }
                     },
                     summary: {
                         type: 'object',
                         properties: {
-                            totalExtracted: { type: 'number' },
                             totalFound: { type: 'number' },
                             totalNotFound: { type: 'number' },
-                            totalSuggestions: { type: 'number' },
-                            validationMethod: { type: 'string' }
+                            totalSuggestions: { type: 'number' }
                         }
                     }
                 }
@@ -381,36 +330,35 @@ export const aiMedicationValidationRoute: RouteOptions = {
         }
     },
     handler: async (request, reply) => {
-        const { text } = request.body as { text: string };
+        const { text, country } = request.body as { text: string; country: string };
 
-        if (!text || text.trim().length === 0) {
+        if (!text || !country) {
             return reply.code(400).send({
-                error: 'Se requiere texto para la validación'
+                error: 'Se requiere texto y país para la validación'
+            });
+        }
+
+        if (!vademecumData[country]) {
+            return reply.code(400).send({
+                error: 'País no soportado'
             });
         }
 
         try {
-            // Extraer medicamentos con IA (automático)
-            const extractedMedications = await extractMedicationsWithAI(text);
-
-            // Validar medicamentos con IA (automático)
-            const validation = await validateMedicationsWithAI(extractedMedications);
+            const validation = validateMedications(text, country);
 
             const summary = {
-                totalExtracted: extractedMedications.length,
-                totalFound: validation.found.length,
-                totalNotFound: validation.notFound.length,
-                totalSuggestions: validation.suggestions.length,
-                validationMethod: 'IA Automática'
+                totalFound: validation.found.length || 0,
+                totalNotFound: validation.notFound.length || 0,
+                totalSuggestions: validation.suggestions.length || 0
             };
 
             return {
-                extractedMedications,
-                validation,
+                ...validation,
                 summary
             };
         } catch (error) {
-            console.error('Error en validación de medicamentos con IA:', error);
+            console.error('Error en validación de medicamentos:', error);
             return reply.code(500).send({
                 error: 'Error interno del servidor'
             });

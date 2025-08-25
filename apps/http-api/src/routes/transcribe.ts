@@ -5,7 +5,7 @@ import FormData from 'form-data';
 import axios from 'axios';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { extractMedicationsWithAI, validateMedicationsWithAI } from './ai-medication-validation';
+// import { extractMedicationsWithAI, validateMedicationsWithAI } from './ai-medication-validation';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -325,7 +325,7 @@ export const transcribeRoute: RouteOptions = {
 
                 // Validar medicamentos en la transcripción usando IA para Chile
                 const transcript = response.data.text;
-                const medicationValidation = await validateMedicationsWithAI(transcript);
+                const medicationValidation = await validateMedications(transcript, 'CHL');
 
                 // Return transcription result with medication validation
                 return {
@@ -338,9 +338,9 @@ export const transcribeRoute: RouteOptions = {
                     medicationValidation: {
                         ...medicationValidation,
                         summary: {
-                            totalFound: medicationValidation.found.length,
-                            totalNotFound: medicationValidation.notFound.length,
-                            totalSuggestions: medicationValidation.suggestions.length
+                            totalFound: medicationValidation.found.length || 0,
+                            totalNotFound: medicationValidation.notFound.length || 0,
+                            totalSuggestions: medicationValidation.suggestions.length || 0
                         }
                     }
                 };

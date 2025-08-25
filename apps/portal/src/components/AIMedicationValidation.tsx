@@ -31,8 +31,9 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
     setResult(null);
 
     try {
-      const response = await apiInstance.post('/api/ai-medication-validation', {
-        text: text.trim()
+      const response = await apiInstance.post('/api/medication-validation', {
+        text: text.trim(),
+        country: 'CHL'
       });
 
       setResult(response.data);
@@ -45,11 +46,11 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
   };
 
   const renderValidationResult = (data: any) => {
-    const { validation, extractedMedications, summary } = data;
+    const { found, notFound, suggestions, summary } = data;
 
     return (
       <div style={{ marginTop: '2rem' }}>
-        {/* Resumen con IA */}
+        {/* Resumen de validación */}
         <div style={{ 
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
@@ -60,7 +61,7 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
             <Brain size={24} style={{ marginRight: '0.5rem' }} />
             <h3 style={{ margin: 0, fontSize: '1.25rem' }}>
-              Validación Automática con IA
+              Validación Automática de Medicamentos
             </h3>
           </div>
           
@@ -71,7 +72,7 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
               borderRadius: '8px',
               fontSize: '0.875rem'
             }}>
-              🔍 {summary.totalExtracted} medicamentos extraídos
+              🔍 {summary.totalFound + summary.totalNotFound} medicamentos extraídos
             </div>
             <div style={{ 
               background: 'rgba(255,255,255,0.2)', 
@@ -99,79 +100,13 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
             </div>
           </div>
           
-                      <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>
-              <strong>Método:</strong> IA Automática (máxima precisión)
-            </div>
+          <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>
+            <strong>Método:</strong> Validación Manual Mejorada (máxima precisión)
+          </div>
         </div>
 
-        {/* Medicamentos extraídos */}
-        {extractedMedications && extractedMedications.length > 0 && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ 
-              margin: '0 0 0.75rem 0', 
-              color: '#1e293b', 
-              fontSize: '1rem',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              <Search size={16} style={{ marginRight: '0.5rem' }} />
-              Medicamentos Extraídos por IA
-            </h4>
-            <div style={{ 
-              background: '#f8fafc', 
-              padding: '1rem', 
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0'
-            }}>
-              {extractedMedications.map((med: string, index: number) => (
-                <span key={index} style={{ 
-                  display: 'inline-block',
-                  background: '#e0e7ff',
-                  color: '#3730a3',
-                  padding: '0.25rem 0.5rem',
-                  margin: '0.125rem',
-                  borderRadius: '4px',
-                  fontSize: '0.875rem',
-                  fontWeight: '500'
-                }}>
-                  {med}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Análisis de IA */}
-        {validation.aiAnalysis && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ 
-              margin: '0 0 0.75rem 0', 
-              color: '#1e293b', 
-              fontSize: '1rem',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              <Brain size={16} style={{ marginRight: '0.5rem' }} />
-              Análisis de IA
-            </h4>
-            <div style={{ 
-              background: '#f0f9ff', 
-              padding: '1rem', 
-              borderRadius: '8px',
-              border: '1px solid #bae6fd',
-              color: '#0c4a6e',
-              fontSize: '0.875rem',
-              lineHeight: '1.6'
-            }}>
-              {validation.aiAnalysis}
-            </div>
-          </div>
-        )}
-
         {/* Medicamentos encontrados */}
-        {validation.found && validation.found.length > 0 && (
+        {found && found.length > 0 && (
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{ 
               margin: '0 0 0.75rem 0', 
@@ -184,8 +119,8 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
               <CheckCircle size={16} style={{ marginRight: '0.5rem' }} />
               Medicamentos Encontrados en el Vademecum de Chile
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {validation.found.map((item: any, index: number) => (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {found.map((item: any, index: number) => (
                 <div key={index} style={{ 
                   background: '#f0fdf4', 
                   padding: '1rem', 
@@ -211,7 +146,7 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
         )}
 
         {/* Sugerencias */}
-        {validation.suggestions && validation.suggestions.length > 0 && (
+        {suggestions && suggestions.length > 0 && (
           <div style={{ marginBottom: '1.5rem' }}>
             <h4 style={{ 
               margin: '0 0 0.75rem 0', 
@@ -224,8 +159,8 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
               <AlertTriangle size={16} style={{ marginRight: '0.5rem' }} />
               Sugerencias de IA
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {validation.suggestions.map((item: any, index: number) => (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {suggestions.map((item: any, index: number) => (
                 <div key={index} style={{ 
                   background: '#fffbeb', 
                   padding: '1rem', 
@@ -264,7 +199,7 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
         )}
 
         {/* No encontrados */}
-        {validation.notFound && validation.notFound.length > 0 && (
+        {/* {notFound && notFound.length > 0 && (
           <div>
             <h4 style={{ 
               margin: '0 0 0.75rem 0', 
@@ -284,7 +219,7 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
               border: '1px solid #fecaca'
             }}>
               <div style={{ fontSize: '0.875rem', color: '#991b1b', marginBottom: '0.5rem' }}>
-                {validation.notFound.map((item: string, index: number) => (
+                {notFound.map((item: string, index: number) => (
                   <span key={index} style={{ 
                     display: 'inline-block',
                     background: '#fee2e2',
@@ -307,14 +242,19 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     );
   };
 
   // Si se pasan props, mostrar solo el resultado
   if (validation && extractedMedications) {
-    return renderValidationResult({ validation, extractedMedications, summary });
+    return renderValidationResult({ 
+      found: validation.found || [], 
+      notFound: validation.notFound || [], 
+      suggestions: validation.suggestions || [], 
+      summary 
+    });
   }
 
   // Si no hay props, mostrar el formulario de entrada
@@ -341,8 +281,8 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
           </h2>
         </div>
         <p style={{ margin: 0, opacity: 0.9, lineHeight: '1.6' }}>
-          Sistema inteligente que utiliza IA automáticamente para validar medicamentos 
-          contra el Vademecum de Chile. Máxima precisión sin configuración manual.
+          Sistema inteligente que utiliza algoritmos avanzados para validar medicamentos 
+          contra el Vademecum de Chile. Máxima precisión con detección de errores tipográficos.
         </p>
       </div>
       
@@ -360,8 +300,8 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
           </span>
         </div>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#0369a1', lineHeight: '1.5' }}>
-          El sistema utiliza inteligencia artificial automáticamente para extraer y validar medicamentos 
-          contra el Vademecum de Chile con máxima precisión.
+          El sistema utiliza algoritmos avanzados de similitud para extraer y validar medicamentos 
+          contra el Vademecum de Chile con máxima precisión y detección de errores tipográficos.
         </p>
       </div>
 

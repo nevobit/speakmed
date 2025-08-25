@@ -231,18 +231,78 @@ export const downloadRecetaRoute: RouteOptions = {
             // Usar datos médicos personalizados o valores por defecto
             const data = {
                 clinicName: medicalData?.clinicName || 'Clínica Alemana',
-                doctorName: medicalData?.doctorName || 'Dr. MÉDICO ESPECIALISTA',
-                doctorRut: medicalData?.doctorRut || '12345678-9',
+                doctorName: medicalData?.doctorName || 'Dr. Juan Pérez',
+                doctorRut: medicalData?.doctorRut || '12.345.678-9',
                 doctorSpecialty: medicalData?.doctorSpecialty || 'Medicina General',
                 doctorLocation: medicalData?.doctorLocation || 'CONSULTORIO',
-                patientName: medicalData?.patientName || 'PACIENTE EJEMPLO',
-                patientGender: medicalData?.patientGender || 'MASCULINO',
-                patientRut: medicalData?.patientRut || '98765432-1',
+                patientName: medicalData?.patientName || 'María González',
+                patientGender: medicalData?.patientGender || 'FEMENINO',
+                patientRut: medicalData?.patientRut || '98.765.432-1',
                 patientBirthDate: medicalData?.patientBirthDate || '01/01/1980 (43a)',
                 doctorSignature: medicalData?.doctorSignature || null
             };
 
-            // Generar contenido HTML para la receta médica con script de impresión automática
+            // Medicamentos de ejemplo basados en la imagen
+            const medications = medicalData?.medications || [
+                {
+                    name: 'colmibe',
+                    dosage: '40 / 10',
+                    form: 'comprimido',
+                    manufacturer: 'Tecnofarma',
+                    type: 'Permanente',
+                    composition: 'atorvastatina 40 mg + ezetimiba 10 mg comprimido',
+                    instructions: '1 comprimido CADA 24 HORAS, PERMANENTE, ORAL',
+                    startDate: '20/11/2023',
+                    additionalNotes: 'noche +56998840888'
+                },
+                {
+                    name: 'carvedilol',
+                    dosage: '12,5 mg',
+                    form: 'comprimido',
+                    type: 'Permanente',
+                    composition: '12,5 miligramo',
+                    instructions: 'CADA 12 HORAS, PERMANENTE, ORAL',
+                    startDate: '29/04/2024'
+                }
+            ];
+
+            // Función para generar HTML de medicamentos
+            const generateMedicationsHtml = (meds: any[]) => {
+                return meds.map(med => `
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: flex-start; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.2rem; margin-right: 0.5rem; margin-top: 0.2rem; color: #000;">•</span>
+                            <div style="flex: 1;">
+                                <div style="font-size: 1rem; font-weight: 500; color: #000; line-height: 1.4;">
+                                    ${med.name} ${med.dosage} ${med.form}
+                                    ${med.manufacturer ? ` (${med.manufacturer})` : ''}
+                                    ${med.type ? ` (${med.type})` : ''}
+                                </div>
+                                
+                                <div style="font-size: 0.9rem; color: #374151; margin-top: 0.25rem; margin-left: 1.5rem; line-height: 1.4;">
+                                    ${med.composition}
+                                </div>
+                                
+                                <div style="font-size: 0.9rem; color: #374151; margin-top: 0.25rem; margin-left: 1.5rem; line-height: 1.4;">
+                                    ${med.instructions}
+                                </div>
+                                
+                                <div style="font-size: 0.9rem; color: #374151; margin-top: 0.25rem; margin-left: 1.5rem; line-height: 1.4;">
+                                    A partir de: ${med.startDate}
+                                </div>
+                                
+                                ${med.additionalNotes ? `
+                                    <div style="font-size: 0.9rem; color: #374151; margin-top: 0.25rem; margin-left: 1.5rem; line-height: 1.4;">
+                                        ${med.additionalNotes}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            // Generar contenido HTML para la receta médica con formato de medicamentos
             const recetaHtml = `
                 <!DOCTYPE html>
                 <html>
@@ -254,24 +314,121 @@ export const downloadRecetaRoute: RouteOptions = {
                             @page { margin: 20px; }
                             body { margin: 0; padding: 20px; }
                         }
-                        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-                        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-                        .logo { color: #008080; font-weight: bold; font-size: 18px; }
-                        .title { color: #008080; text-align: center; font-size: 24px; margin: 20px 0; }
-                        .info-section { display: flex; border: 1px solid #ccc; margin-bottom: 20px; }
-                        .info-column { flex: 1; padding: 15px; }
-                        .info-column:first-child { border-right: 1px solid #ccc; }
-                        .label { font-weight: bold; color: #333; }
-                        .value { color: #008080; margin-bottom: 10px; }
-                        .medications { margin-top: 20px; }
-                        .medication-item { margin-bottom: 15px; padding: 10px; background: #f9f9f9; }
-                        .signature { margin-top: 40px; text-align: center; }
-                        .signature-line { border-top: 1px solid #000; width: 200px; margin: 10px auto; }
-                        .signature-image { max-width: 200px; max-height: 100px; margin: 10px auto; }
-                        .qr-section { text-align: center; margin-top: 30px; }
-                        .validation-text { font-size: 12px; color: #666; margin-top: 20px; }
-                        .print-button { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: #008080; color: white; border: none; border-radius: 5px; cursor: pointer; }
-                        @media print { .print-button { display: none; } }
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 20px;
+                            line-height: 1.4;
+                            color: #333;
+                        }
+                        .header {
+                            text-align: center;
+                            margin-bottom: 2rem;
+                            border-bottom: 2px solid #e5e7eb;
+                            padding-bottom: 1rem;
+                        }
+                        .clinic-name {
+                            font-size: 1.8rem;
+                            font-weight: bold;
+                            color: #1f2937;
+                            margin: 0 0 0.5rem 0;
+                        }
+                        .title {
+                            font-size: 1.4rem;
+                            font-weight: 600;
+                            color: #374151;
+                            margin: 0 0 1rem 0;
+                        }
+                        .info-section {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 2rem;
+                            margin-bottom: 2rem;
+                            padding: 1rem;
+                            background: #f9fafb;
+                            border-radius: 8px;
+                        }
+                        .info-column {
+                            padding: 0.5rem;
+                        }
+                        .info-label {
+                            font-weight: 600;
+                            color: #374151;
+                            margin-bottom: 0.25rem;
+                        }
+                        .info-value {
+                            color: #6b7280;
+                            font-size: 0.9rem;
+                            margin-bottom: 0.5rem;
+                        }
+                        .medications-section {
+                            margin-bottom: 2rem;
+                        }
+                        .medications-title {
+                            font-size: 1.2rem;
+                            font-weight: 600;
+                            color: #1f2937;
+                            margin: 0 0 1rem 0;
+                            border-bottom: 1px solid #e5e7eb;
+                            padding-bottom: 0.5rem;
+                        }
+                        .medications-content {
+                            padding: 1rem;
+                            background: #fff;
+                            border-radius: 8px;
+                        }
+                        .signature {
+                            margin-top: 3rem;
+                            text-align: center;
+                            border-top: 1px solid #e5e7eb;
+                            padding-top: 1rem;
+                        }
+                        .signature-line {
+                            border-top: 1px solid #000;
+                            width: 200px;
+                            margin: 10px auto;
+                        }
+                        .signature-image {
+                            max-width: 200px;
+                            max-height: 100px;
+                            margin: 10px auto;
+                        }
+                        .qr-section {
+                            text-align: center;
+                            margin-top: 2rem;
+                        }
+                        .qr-code {
+                            width: 100px;
+                            height: 100px;
+                            background: #008080;
+                            margin: 0 auto;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-weight: bold;
+                        }
+                        .validation-text {
+                            font-size: 12px;
+                            color: #666;
+                            margin-top: 1rem;
+                            text-align: center;
+                        }
+                        .print-button {
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            padding: 10px 20px;
+                            background: #008080;
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: bold;
+                        }
+                        @media print {
+                            .print-button { display: none; }
+                        }
                     </style>
                     <script>
                         function printAsPDF() {
@@ -289,58 +446,48 @@ export const downloadRecetaRoute: RouteOptions = {
                     <button class="print-button" onclick="printAsPDF()">Imprimir como PDF</button>
                     
                     <div class="header">
-                        <div class="logo">${data.clinicName}</div>
-                        <div>Indicaciones</div>
-                    </div>
-                    
-                    <div class="title">Receta Médica</div>
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        Fecha: ${new Date().toLocaleDateString('es-CL')} Hora: ${new Date().toLocaleTimeString('es-CL')}
+                        <div class="clinic-name">${data.clinicName}</div>
+                        <div class="title">Receta Médica</div>
                     </div>
                     
                     <div class="info-section">
                         <div class="info-column">
-                            <div class="label">Profesional</div>
-                            <div class="value">${data.doctorName}</div>
-                            <div class="label">RUT:</div>
-                            <div class="value">${data.doctorRut}</div>
-                            <div class="label">Especialidad:</div>
-                            <div class="value">${data.doctorSpecialty}</div>
-                            <div class="label">Lugar:</div>
-                            <div class="value">${data.doctorLocation}</div>
+                            <div class="info-label">Profesional:</div>
+                            <div class="info-value">${data.doctorName}</div>
+                            <div class="info-label">RUT:</div>
+                            <div class="info-value">${data.doctorRut}</div>
+                            <div class="info-label">Especialidad:</div>
+                            <div class="info-value">${data.doctorSpecialty}</div>
+                            <div class="info-label">Lugar:</div>
+                            <div class="info-value">${data.doctorLocation}</div>
                         </div>
+                        
                         <div class="info-column">
-                            <div class="label">Paciente</div>
-                            <div class="value">${data.patientName}</div>
-                            <div class="label">Sexo:</div>
-                            <div class="value">${data.patientGender}</div>
-                            <div class="label">RUT:</div>
-                            <div class="value">${data.patientRut}</div>
-                            <div class="label">Fecha Nacimiento:</div>
-                            <div class="value">${data.patientBirthDate}</div>
+                            <div class="info-label">Paciente:</div>
+                            <div class="info-value">${data.patientName}</div>
+                            <div class="info-label">Sexo:</div>
+                            <div class="info-value">${data.patientGender}</div>
+                            <div class="info-label">RUT:</div>
+                            <div class="info-value">${data.patientRut}</div>
+                            <div class="info-label">Fecha Nacimiento:</div>
+                            <div class="info-value">${data.patientBirthDate}</div>
                         </div>
                     </div>
                     
-                    <div class="medications">
-                        <div class="title">Receta médica</div>
-                        <div class="medication-item">
-                            <strong>Medicamento:</strong> Según prescripción médica<br>
-                            <strong>Dosis:</strong> Según indicación médica<br>
-                            <strong>Frecuencia:</strong> Según prescripción<br>
-                            <strong>Duración:</strong> Según indicación médica<br>
-                            <strong>Observaciones:</strong> ${report.summary || 'Sin observaciones adicionales'}
+                    <div class="medications-section">
+                        <div class="medications-title">Receta médica</div>
+                        <div class="medications-content">
+                            ${generateMedicationsHtml(medications)}
                         </div>
                     </div>
                     
                     <div class="signature">
                         ${data.doctorSignature ? `<img src="${data.doctorSignature}" alt="Firma del médico" class="signature-image" />` : '<div class="signature-line"></div>'}
-                        <div>${data.doctorName}</div>
+                        <div style="font-weight: 600; margin-top: 0.5rem;">${data.doctorName}</div>
                     </div>
                     
                     <div class="qr-section">
-                        <div style="width: 100px; height: 100px; background: #008080; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white;">
-                            QR
-                        </div>
+                        <div class="qr-code">QR</div>
                     </div>
                     
                     <div class="validation-text">

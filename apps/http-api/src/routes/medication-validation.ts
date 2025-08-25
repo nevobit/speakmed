@@ -51,7 +51,14 @@ function extractMedicationNames(text: string): string[] {
         'mg', 'ml', 'g', 'kg', 'mcg', 'ui', 'mci', 'cc'
     ]);
 
-    // Buscar secuencias de palabras que podrían formar nombres de medicamentos
+    // Primero, agregar palabras individuales que podrían ser medicamentos
+    for (const word of words) {
+        if (word.length >= 3 && !stopWords.has(word)) {
+            medications.push(word);
+        }
+    }
+
+    // Luego, buscar secuencias de palabras que podrían formar nombres de medicamentos
     for (let i = 0; i < words.length; i++) {
         for (let j = i + 1; j <= Math.min(i + 5, words.length); j++) {
             const phrase = words.slice(i, j).join(' ');
@@ -64,40 +71,151 @@ function extractMedicationNames(text: string): string[] {
     return [...new Set(medications)]; // Eliminar duplicados
 }
 
-// Función para calcular similitud entre dos strings
+// Función para calcular similitud entre dos strings usando múltiples algoritmos
 function calculateSimilarity(str1: string, str2: string): number {
     const normalized1 = normalizeText(str1);
     const normalized2 = normalizeText(str2);
 
     if (normalized1 === normalized2) return 1.0;
 
-    // Algoritmo de similitud de Jaro-Winkler simplificado
+    // 1. Distancia de Levenshtein
+    const levenshteinDistance = calculateLevenshteinDistance(normalized1, normalized2);
     const maxLength = Math.max(normalized1.length, normalized2.length);
-    const minLength = Math.min(normalized1.length, normalized2.length);
+    const levenshteinSimilarity = 1 - (levenshteinDistance / maxLength);
 
-    if (minLength === 0) return 0.0;
+    // 2. Similitud de Jaro-Winkler mejorada
+    const jaroSimilarity = calculateJaroSimilarity(normalized1, normalized2);
 
-    let matches = 0;
-    let transpositions = 0;
-    const matchWindow = Math.floor(maxLength / 2) - 1;
+    // 3. Similitud de caracteres comunes
+    const commonCharSimilarity = calculateCommonCharSimilarity(normalized1, normalized2);
 
-    for (let i = 0; i < normalized1.length; i++) {
+    // 4. Similitud de palabras (para casos como "paracetamol" vs "apracetamol")
+    const wordSimilarity = calculateWordSimilarity(normalized1, normalized2);
+
+    // Combinar todas las similitudes con pesos
+    const combinedSimilarity = (
+        levenshteinSimilarity * 0.4 +
+        jaroSimilarity * 0.3 +
+        commonCharSimilarity * 0.2 +
+        wordSimilarity * 0.1
+    );
+
+    return Math.min(1.0, Math.max(0.0, combinedSimilarity));
+}
+
+// Función para calcular la distancia de Levenshtein
+function calculateLevenshteinDistance(str1: string, str2: string): number {
+    const matrix: number[][] = [];
+
+    // Inicializar matriz
+    for (let j = 0; j <= str2.length; j++) {
+        matrix[j] = [];
+        for (let i = 0; i <= str1.length; i++) {
+            matrix[j]![i] = 0;
+        }
+    }
+
+    for (let i = 0; i <= str1.length; i++) {
+        matrix[0]![i] = i;
+    }
+
+    for (let j = 0; j <= str2.length; j++) {
+        matrix[j]![0] = j;
+    }
+
+    for (let j = 1; j <= str2.length; j++) {
+        for (let i = 1; i <= str1.length; i++) {
+            const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+            matrix[j]![i] = Math.min(
+                matrix[j]![i - 1]! + 1, // eliminación
+                matrix[j - 1]![i]! + 1, // inserción
+                matrix[j - 1]![i - 1]! + indicator // sustitución
+            );
+        }
+    }
+
+    return matrix[str2.length]![str1.length]!;
+}
+
+// Función para calcular similitud de Jaro mejorada
+function calculateJaroSimilarity(str1: string, str2: string): number {
+    if (str1 === str2) return 1.0;
+    if (str1.length === 0 || str2.length === 0) return 0.0;
+
+    const matchWindow = Math.floor(Math.max(str1.length, str2.length) / 2) - 1;
+    if (matchWindow < 0) return 0.0;
+
+    let matches1 = new Array(str1.length).fill(false);
+    let matches2 = new Array(str2.length).fill(false);
+
+    // Encontrar coincidencias
+    for (let i = 0; i < str1.length; i++) {
         const start = Math.max(0, i - matchWindow);
-        const end = Math.min(normalized2.length, i + matchWindow + 1);
+        const end = Math.min(str2.length, i + matchWindow + 1);
 
         for (let j = start; j < end; j++) {
-            if (normalized1[i] === normalized2[j]) {
-                matches++;
-                if (i !== j) transpositions++;
+            if (!matches2[j] && str1[i] === str2[j]) {
+                matches1[i] = true;
+                matches2[j] = true;
                 break;
             }
         }
     }
 
-    if (matches === 0) return 0.0;
+    const matches1Str = str1.split('').filter((_, i) => matches1[i]).join('');
+    const matches2Str = str2.split('').filter((_, i) => matches2[i]).join('');
 
-    const similarity = (matches / normalized1.length + matches / normalized2.length + (matches - transpositions / 2) / matches) / 3;
-    return Math.min(1.0, similarity);
+    if (matches1Str.length === 0) return 0.0;
+
+    // Calcular transposiciones
+    let transpositions = 0;
+    for (let i = 0; i < matches1Str.length; i++) {
+        if (matches1Str[i] !== matches2Str[i]) {
+            transpositions++;
+        }
+    }
+
+    const m = matches1Str.length;
+    const t = transpositions / 2;
+
+    return (m / str1.length + m / str2.length + (m - t) / m) / 3;
+}
+
+// Función para calcular similitud basada en caracteres comunes
+function calculateCommonCharSimilarity(str1: string, str2: string): number {
+    const chars1 = new Set(str1.split(''));
+    const chars2 = new Set(str2.split(''));
+
+    const intersection = new Set([...chars1].filter(x => chars2.has(x)));
+    const union = new Set([...chars1, ...chars2]);
+
+    return intersection.size / union.size;
+}
+
+// Función para calcular similitud de palabras (especialmente útil para errores tipográficos)
+function calculateWordSimilarity(str1: string, str2: string): number {
+    // Para palabras cortas, usar similitud de caracteres
+    if (str1.length <= 3 || str2.length <= 3) {
+        return calculateCommonCharSimilarity(str1, str2);
+    }
+
+    // Para palabras más largas, buscar patrones de caracteres similares
+    let similarChars = 0;
+    const minLength = Math.min(str1.length, str2.length);
+
+    for (let i = 0; i < minLength; i++) {
+        if (str1[i] === str2[i]) {
+            similarChars++;
+        } else if (i > 0 && i < minLength - 1) {
+            // Verificar transposiciones de caracteres adyacentes
+            if (str1[i] === str2[i + 1] && str1[i + 1] === str2[i]) {
+                similarChars += 0.8; // Penalizar ligeramente las transposiciones
+                i++; // Saltar el siguiente carácter
+            }
+        }
+    }
+
+    return similarChars / Math.max(str1.length, str2.length);
 }
 
 // Función para validar medicamentos contra el Vademecum
@@ -120,11 +238,11 @@ function validateMedications(text: string, country: string): {
         for (const vademecumItem of vademecum) {
             const similarity = calculateSimilarity(medication, vademecumItem);
 
-            if (similarity > 0.8) {
+            if (similarity > 0.75) {
                 if (!bestMatch || similarity > bestMatch.similarity) {
                     bestMatch = { name: vademecumItem, similarity };
                 }
-            } else if (similarity > 0.6) {
+            } else if (similarity > 0.5) {
                 localSuggestions.push(vademecumItem);
             }
         }
@@ -230,9 +348,9 @@ export const medicationValidationRoute: RouteOptions = {
             const validation = validateMedications(text, country);
 
             const summary = {
-                totalFound: validation.found.length,
-                totalNotFound: validation.notFound.length,
-                totalSuggestions: validation.suggestions.length
+                totalFound: validation.found.length || 0,
+                totalNotFound: validation.notFound.length || 0,
+                totalSuggestions: validation.suggestions.length || 0
             };
 
             return {

@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev -P tsconfig.json src/server/index.ts",
-    "build": "./scripts/build",
     "start": "node ./dist/server/index.js",
     "release": "release-it",
     "docker-compose:up": "docker-compose -f docker-compose.yml up"
