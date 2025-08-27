@@ -76,3 +76,15 @@ export const deleteReport = (id: string) => apiInstance.delete(`/api/reports/${i
 // Validación de medicamentos
 export const validateMedications = (data: { text: string; country: string }) =>
     apiInstance.post('/api/medication-validation', data).then(r => r.data);
+
+// Extracción de medicamentos del audio
+export const extractMedicationsFromAudio = (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'audio.webm');
+
+    return apiInstance.post('/api/audio-medication-extraction', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    }).then(r => r.data);
+};

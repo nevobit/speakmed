@@ -10,6 +10,7 @@ import { transcribeRoute } from './transcribe';
 import { vademecumRoute } from './vademecum';
 import { medicationValidationRoute } from './medication-validation';
 import { aiMedicationValidationRoute } from './ai-medication-validation';
+import { audioMedicationExtractionRoute } from './audio-medication-extraction';
 import { descargarRecetaRoute } from './recetas';
 import { descargarExamenRoute } from './examenes';
 import { vozDoctorRoute } from './voz-doctor';
@@ -20,6 +21,7 @@ const routes: RouteOptions[] = [
     transcribeRoute,
     medicationValidationRoute,
     aiMedicationValidationRoute,
+    audioMedicationExtractionRoute,
     getTemplatesRoute,
     createTemplateRoute,
     updateTemplateRoute,

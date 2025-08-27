@@ -3,9 +3,10 @@ import { ReportSchemaMongo } from '@repo/entities/src/models/report-mongo';
 import { TemplateSchemaMongo } from '@repo/entities/src/models/template-mongo';
 import mongoose from 'mongoose';
 import Handlebars from 'handlebars';
-import { createReport, getAllReports, getReportById, getTemplateById } from '@repo/business-logic';
+import { createReport, getAllReports, getReportById, getTemplateById, extractMedicationsFromAudio } from '@repo/business-logic';
 import axios from 'axios';
 import { cleanHtmlContent } from '../utils/htmlCleaner';
+import { safeJsonParse } from '../utils/jsonCleaner';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -52,7 +53,7 @@ function extractMedicationNames(text: string): string[] {
     // Buscar palabras que podrían ser medicamentos (3-15 caracteres, sin números al inicio)
     for (let i = 0; i < words.length; i++) {
         const word = words[i];
-        if (word.length >= 3 && word.length <= 15 && !/^\d/.test(word)) {
+        if (word && word.length >= 3 && word.length <= 15 && !/^\d/.test(word)) {
             medications.push(word);
         }
 
@@ -163,78 +164,79 @@ function validateMedications(text: string, country: string = 'CHL'): {
 // Función para extraer medicamentos del contenido del informe
 async function extractMedicationsFromReport(reportContent: string): Promise<any[]> {
     // Primero intentar extraer medicamentos usando la validación existente
-    const medicationValidation = validateMedications(reportContent, 'CHL');
+    // const medicationValidation = validateMedications(reportContent, 'CHL');
 
-    // Convertir los medicamentos encontrados al formato de la receta
-    const medications = medicationValidation.found.map((med, index) => {
-        // Buscar información adicional del medicamento en el contenido
-        const medicationInfo = extractMedicationDetails(reportContent, med.name);
+    // // Convertir los medicamentos encontrados al formato de la receta
+    // const medications = medicationValidation.found.map((med, index) => {
+    //     // Buscar información adicional del medicamento en el contenido
+    //     const medicationInfo = extractMedicationDetails(reportContent, med.name);
 
-        return {
-            name: med.name,
-            dosage: medicationInfo.dosage || '',
-            form: medicationInfo.form || 'comprimido',
-            manufacturer: medicationInfo.manufacturer || '',
-            type: medicationInfo.type || 'Permanente',
-            composition: medicationInfo.composition || med.name,
-            instructions: medicationInfo.instructions || 'Según indicación médica',
-            startDate: new Date().toLocaleDateString('es-CL'),
-            additionalNotes: medicationInfo.additionalNotes || ''
-        };
-    });
+    //     return {
+    //         name: med.name,
+    //         dosage: medicationInfo.dosage || '',
+    //         form: medicationInfo.form || 'comprimido',
+    //         manufacturer: medicationInfo.manufacturer || '',
+    //         type: medicationInfo.type || 'Permanente',
+    //         composition: medicationInfo.composition || med.name,
+    //         instructions: medicationInfo.instructions || 'Según indicación médica',
+    //         startDate: new Date().toLocaleDateString('es-CL'),
+    //         additionalNotes: medicationInfo.additionalNotes || ''
+    //     };
+    // });
 
     // Si no se encontraron medicamentos, intentar extraer usando IA
-    if (medications.length === 0 && OPENAI_API_KEY) {
         try {
             const aiMedications = await extractMedicationsWithAI(reportContent);
             if (aiMedications.length > 0) {
                 return aiMedications;
+            } else {
+                return [];
             }
         } catch (error) {
             console.error('Error extracting medications with AI:', error);
+            return [];
         }
-    }
 
-    // Si aún no hay medicamentos, intentar extraer del texto usando patrones
-    if (medications.length === 0) {
-        // Extraer medicamentos del texto usando patrones comunes
-        const medicationPatterns = [
-            /(?:recetar|prescribir|indicar|dar)\s+([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)(?:\s+\d+|\s+mg|\s+ml|\s+comprimido|\.|,|$)/gi,
-            /([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)\s+(?:mg|ml|comprimido|tableta|cápsula)/gi,
-            /(?:medicamento|fármaco|droga)\s+([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)(?:\s+\d+|\s+mg|\s+ml|\.|,|$)/gi
-        ];
+    // // Si aún no hay medicamentos, intentar extraer del texto usando patrones
+    // if (medications.length === 0) {
+    //     // Extraer medicamentos del texto usando patrones comunes
+    //     const medicationPatterns = [
+    //         /(?:recetar|prescribir|indicar|dar)\s+([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)(?:\s+\d+|\s+mg|\s+ml|\s+comprimido|\.|,|$)/gi,
+    //         /([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)\s+(?:mg|ml|comprimido|tableta|cápsula)/gi,
+    //         /(?:medicamento|fármaco|droga)\s+([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)(?:\s+\d+|\s+mg|\s+ml|\.|,|$)/gi
+    //     ];
 
-        const extractedNames = new Set<string>();
+    //     const extractedNames = new Set<string>();
 
-        medicationPatterns.forEach(pattern => {
-            const matches = reportContent.match(pattern);
-            if (matches) {
-                matches.forEach(match => {
-                    const name = match.replace(/(?:recetar|prescribir|indicar|dar|medicamento|fármaco|droga)\s+/gi, '').trim();
-                    if (name.length > 2 && name.length < 50) {
-                        extractedNames.add(name);
-                    }
-                });
-            }
-        });
+    //     medicationPatterns.forEach(pattern => {
+    //         const matches = reportContent.match(pattern);
+    //         if (matches) {
+    //             matches.forEach(match => {
+    //                 const name = match.replace(/(?:recetar|prescribir|indicar|dar|medicamento|fármaco|droga)\s+/gi, '').trim();
+    //                 if (name.length > 2 && name.length < 50) {
+    //                     extractedNames.add(name);
+    //                 }
+    //             });
+    //         }
+    //     });
 
-        extractedNames.forEach(name => {
-            const medicationInfo = extractMedicationDetails(reportContent, name);
-            medications.push({
-                name: name,
-                dosage: medicationInfo.dosage || '',
-                form: medicationInfo.form || 'comprimido',
-                manufacturer: medicationInfo.manufacturer || '',
-                type: medicationInfo.type || 'Permanente',
-                composition: medicationInfo.composition || name,
-                instructions: medicationInfo.instructions || 'Según indicación médica',
-                startDate: new Date().toLocaleDateString('es-CL'),
-                additionalNotes: medicationInfo.additionalNotes || ''
-            });
-        });
-    }
+    // extractedNames.forEach(name => {
+    //     const medicationInfo = extractMedicationDetails(reportContent, name);
+    //     medications.push({
+    //         name: name,
+    //         dosage: medicationInfo.dosage || '',
+    //         form: medicationInfo.form || 'comprimido',
+    //         manufacturer: medicationInfo.manufacturer || '',
+    //         type: medicationInfo.type || 'Permanente',
+    //         composition: medicationInfo.composition || name,
+    //         instructions: medicationInfo.instructions || 'Según indicación médica',
+    //         startDate: new Date().toLocaleDateString('es-CL'),
+    //         additionalNotes: medicationInfo.additionalNotes || ''
+    //     });
+    // });
+    // }
 
-    return medications;
+    // return medications;
 }
 
 // Función para extraer medicamentos usando IA
@@ -243,7 +245,8 @@ async function extractMedicationsWithAI(reportContent: string): Promise<any[]> {
         return [];
     }
 
-    const prompt = `Eres un asistente médico experto. Analiza el siguiente informe médico y extrae todos los medicamentos mencionados con sus detalles.
+    const prompt = `Eres un asistente médico experto. Analiza el siguiente informe médico y extrae todos los medicamentos mencionados con sus detalles, en caso de no tener detalles agregalos tu.
+ejemplo si dicen salbutamol, agregar el nombre del medicamento, la dosis, la forma farmacéutica, el fabricante, el tipo de tratamiento, la composición y las instrucciones de uso.
 
 Informe médico:
 ${reportContent}
@@ -262,7 +265,9 @@ Extrae los medicamentos y devuelve el resultado en formato JSON con la siguiente
   }
 ]
 
-Si no hay medicamentos mencionados, devuelve un array vacío [].`;
+Si no hay medicamentos mencionados, devuelve un array vacío [].
+
+IMPORTANTE: DEVUELVE SOLO JSON PURO, sin markdown, sin backticks, sin explicaciones adicionales. El JSON debe ser parseable directamente con JSON.parse().`;
 
     try {
         const response = await axios.post(
@@ -293,17 +298,13 @@ Si no hay medicamentos mencionados, devuelve un array vacío [].`;
 
         const content = response.data.choices[0].message.content;
 
-        // Intentar parsear el JSON
-        try {
-            const medications = JSON.parse(content);
-            if (Array.isArray(medications)) {
-                return medications.map(med => ({
-                    ...med,
-                    startDate: new Date().toLocaleDateString('es-CL')
-                }));
-            }
-        } catch (parseError) {
-            console.error('Error parsing AI response:', parseError);
+        // Usar la función utilitaria para parsear JSON de manera segura
+        const medications = safeJsonParse<any[]>(content);
+        if (medications && Array.isArray(medications)) {
+            return medications.map(med => ({
+                ...med,
+                startDate: new Date().toLocaleDateString('es-CL')
+            }));
         }
 
         return [];
@@ -354,7 +355,7 @@ function extractMedicationDetails(content: string, medicationName: string): {
     formPatterns.forEach(pattern => {
         const match = content.match(pattern);
         if (match) {
-            details.form = match[1].toLowerCase();
+            details.form = match[1]?.toLowerCase() || '';
         }
     });
 
@@ -380,7 +381,7 @@ function extractMedicationDetails(content: string, medicationName: string): {
     manufacturerPatterns.forEach(pattern => {
         const match = content.match(pattern);
         if (match) {
-            details.manufacturer = match[1].trim();
+            details.manufacturer = match[1]?.trim() || '';
         }
     });
 
@@ -639,11 +640,25 @@ export const downloadRecetaRoute: RouteOptions = {
             };
 
             // Extraer medicamentos del contenido del informe
-            let medications = medicalData?.medications || [];
+            let medications = [];
 
             // Si no se proporcionaron medicamentos específicos, extraerlos del informe
             if (medications.length === 0 && report.content) {
                 medications = await extractMedicationsFromReport(report.content);
+            }
+            console.log({ medications });
+
+            // Si aún no hay medicamentos, intentar extraer del audio si está disponible
+            if (medications.length === 0 && medicalData?.audioBlob) {
+                try {
+                    const audioExtraction = await extractMedicationsFromAudio(medicalData.audioBlob, OPENAI_API_KEY!);
+                    if (audioExtraction.medications && audioExtraction.medications.length > 0) {
+                        medications = audioExtraction.medications;
+                        console.log({ medications });
+                    }
+                } catch (error) {
+                    console.error('Error extracting medications from audio:', error);
+                }
             }
 
             // Si aún no hay medicamentos, usar medicamentos de ejemplo como fallback
