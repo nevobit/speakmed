@@ -5,9 +5,387 @@ import mongoose from 'mongoose';
 import Handlebars from 'handlebars';
 import { createReport, getAllReports, getReportById, getTemplateById } from '@repo/business-logic';
 import axios from 'axios';
+import { cleanHtmlContent } from '../utils/htmlCleaner';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const Report = mongoose.model('Report', ReportSchemaMongo);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+// Cargar las bases de datos del Vademecum
+const chileList: string[] = JSON.parse(
+    readFileSync(join(__dirname, '../../data/vademecum_cl.json'), 'utf8'),
+);
+
+const colList: string[] = JSON.parse(
+    readFileSync(join(__dirname, '../../data/vademecum_co.json'), 'utf8'),
+);
+
+const argList: string[] = JSON.parse(
+    readFileSync(join(__dirname, '../../data/vademecum_ar.json'), 'utf8'),
+);
+
+const vademecumData: Record<string, string[]> = {
+    ARG: argList,
+    MEX: colList,
+    COL: colList,
+    CHL: chileList,
+};
+
+// Función para normalizar texto (eliminar acentos, convertir a minúsculas, etc.)
+function normalizeText(text: string): string {
+    return text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Eliminar acentos
+        .replace(/[^a-z0-9\s]/g, ' ') // Solo letras, números y espacios
+        .replace(/\s+/g, ' ') // Múltiples espacios a uno solo
+        .trim();
+}
+
+// Función para extraer posibles nombres de medicamentos del texto
+function extractMedicationNames(text: string): string[] {
+    const normalizedText = normalizeText(text);
+    const words = normalizedText.split(/\s+/);
+    const medications: string[] = [];
+
+    // Buscar palabras que podrían ser medicamentos (3-15 caracteres, sin números al inicio)
+    for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (word.length >= 3 && word.length <= 15 && !/^\d/.test(word)) {
+            medications.push(word);
+        }
+
+        // Buscar combinaciones de 2-3 palabras
+        if (i < words.length - 1) {
+            const twoWords = `${word} ${words[i + 1]}`;
+            if (twoWords.length >= 4 && twoWords.length <= 20) {
+                medications.push(twoWords);
+            }
+        }
+
+        if (i < words.length - 2) {
+            const threeWords = `${word} ${words[i + 1]} ${words[i + 2]}`;
+            if (threeWords.length >= 6 && threeWords.length <= 25) {
+                medications.push(threeWords);
+            }
+        }
+    }
+
+    return [...new Set(medications)]; // Eliminar duplicados
+}
+
+// Función para calcular similitud entre dos strings
+function calculateSimilarity(str1: string, str2: string): number {
+    const normalized1 = normalizeText(str1);
+    const normalized2 = normalizeText(str2);
+
+    if (normalized1 === normalized2) return 1.0;
+
+    // Algoritmo de similitud de Jaro-Winkler simplificado
+    const maxLength = Math.max(normalized1.length, normalized2.length);
+    const minLength = Math.min(normalized1.length, normalized2.length);
+
+    if (minLength === 0) return 0.0;
+
+    let matches = 0;
+    let transpositions = 0;
+    const matchWindow = Math.floor(maxLength / 2) - 1;
+
+    for (let i = 0; i < normalized1.length; i++) {
+        const start = Math.max(0, i - matchWindow);
+        const end = Math.min(normalized2.length, i + matchWindow + 1);
+
+        for (let j = start; j < end; j++) {
+            if (normalized1[i] === normalized2[j]) {
+                matches++;
+                if (i !== j) transpositions++;
+                break;
+            }
+        }
+    }
+
+    if (matches === 0) return 0.0;
+
+    const similarity = (matches / normalized1.length + matches / normalized2.length + (matches - transpositions / 2) / matches) / 3;
+    return Math.min(1.0, similarity);
+}
+
+// Función para validar medicamentos contra el Vademecum
+function validateMedications(text: string, country: string = 'CHL'): {
+    found: Array<{ name: string; similarity: number; original: string }>;
+    notFound: string[];
+    suggestions: Array<{ original: string; suggestions: string[] }>;
+} {
+    const medications = extractMedicationNames(text);
+    const vademecum = vademecumData[country] || vademecumData['CHL'] || [];
+
+    const found: Array<{ name: string; similarity: number; original: string }> = [];
+    const notFound: string[] = [];
+    const suggestions: Array<{ original: string; suggestions: string[] }> = [];
+
+    for (const medication of medications) {
+        let bestMatch: { name: string; similarity: number } | null = null;
+        const localSuggestions: string[] = [];
+
+        for (const vademecumItem of vademecum) {
+            const similarity = calculateSimilarity(medication, vademecumItem);
+
+            if (similarity > 0.8) {
+                if (!bestMatch || similarity > bestMatch.similarity) {
+                    bestMatch = { name: vademecumItem, similarity };
+                }
+            } else if (similarity > 0.6) {
+                localSuggestions.push(vademecumItem);
+            }
+        }
+
+        if (bestMatch) {
+            found.push({
+                name: bestMatch.name,
+                similarity: bestMatch.similarity,
+                original: medication
+            });
+        } else {
+            notFound.push(medication);
+            if (localSuggestions.length > 0) {
+                suggestions.push({
+                    original: medication,
+                    suggestions: localSuggestions.slice(0, 5) // Máximo 5 sugerencias
+                });
+            }
+        }
+    }
+
+    return { found, notFound, suggestions };
+}
+
+// Función para extraer medicamentos del contenido del informe
+async function extractMedicationsFromReport(reportContent: string): Promise<any[]> {
+    // Primero intentar extraer medicamentos usando la validación existente
+    const medicationValidation = validateMedications(reportContent, 'CHL');
+
+    // Convertir los medicamentos encontrados al formato de la receta
+    const medications = medicationValidation.found.map((med, index) => {
+        // Buscar información adicional del medicamento en el contenido
+        const medicationInfo = extractMedicationDetails(reportContent, med.name);
+
+        return {
+            name: med.name,
+            dosage: medicationInfo.dosage || '',
+            form: medicationInfo.form || 'comprimido',
+            manufacturer: medicationInfo.manufacturer || '',
+            type: medicationInfo.type || 'Permanente',
+            composition: medicationInfo.composition || med.name,
+            instructions: medicationInfo.instructions || 'Según indicación médica',
+            startDate: new Date().toLocaleDateString('es-CL'),
+            additionalNotes: medicationInfo.additionalNotes || ''
+        };
+    });
+
+    // Si no se encontraron medicamentos, intentar extraer usando IA
+    if (medications.length === 0 && OPENAI_API_KEY) {
+        try {
+            const aiMedications = await extractMedicationsWithAI(reportContent);
+            if (aiMedications.length > 0) {
+                return aiMedications;
+            }
+        } catch (error) {
+            console.error('Error extracting medications with AI:', error);
+        }
+    }
+
+    // Si aún no hay medicamentos, intentar extraer del texto usando patrones
+    if (medications.length === 0) {
+        // Extraer medicamentos del texto usando patrones comunes
+        const medicationPatterns = [
+            /(?:recetar|prescribir|indicar|dar)\s+([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)(?:\s+\d+|\s+mg|\s+ml|\s+comprimido|\.|,|$)/gi,
+            /([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)\s+(?:mg|ml|comprimido|tableta|cápsula)/gi,
+            /(?:medicamento|fármaco|droga)\s+([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)(?:\s+\d+|\s+mg|\s+ml|\.|,|$)/gi
+        ];
+
+        const extractedNames = new Set<string>();
+
+        medicationPatterns.forEach(pattern => {
+            const matches = reportContent.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    const name = match.replace(/(?:recetar|prescribir|indicar|dar|medicamento|fármaco|droga)\s+/gi, '').trim();
+                    if (name.length > 2 && name.length < 50) {
+                        extractedNames.add(name);
+                    }
+                });
+            }
+        });
+
+        extractedNames.forEach(name => {
+            const medicationInfo = extractMedicationDetails(reportContent, name);
+            medications.push({
+                name: name,
+                dosage: medicationInfo.dosage || '',
+                form: medicationInfo.form || 'comprimido',
+                manufacturer: medicationInfo.manufacturer || '',
+                type: medicationInfo.type || 'Permanente',
+                composition: medicationInfo.composition || name,
+                instructions: medicationInfo.instructions || 'Según indicación médica',
+                startDate: new Date().toLocaleDateString('es-CL'),
+                additionalNotes: medicationInfo.additionalNotes || ''
+            });
+        });
+    }
+
+    return medications;
+}
+
+// Función para extraer medicamentos usando IA
+async function extractMedicationsWithAI(reportContent: string): Promise<any[]> {
+    if (!OPENAI_API_KEY) {
+        return [];
+    }
+
+    const prompt = `Eres un asistente médico experto. Analiza el siguiente informe médico y extrae todos los medicamentos mencionados con sus detalles.
+
+Informe médico:
+${reportContent}
+
+Extrae los medicamentos y devuelve el resultado en formato JSON con la siguiente estructura:
+[
+  {
+    "name": "Nombre del medicamento",
+    "dosage": "Dosis (ej: 500mg, 10ml)",
+    "form": "Forma farmacéutica (comprimido, jarabe, etc.)",
+    "manufacturer": "Fabricante si se menciona",
+    "type": "Tipo de tratamiento (Permanente, Temporal)",
+    "composition": "Composición del medicamento",
+    "instructions": "Instrucciones de uso",
+    "additionalNotes": "Notas adicionales"
+  }
+]
+
+Si no hay medicamentos mencionados, devuelve un array vacío [].`;
+
+    try {
+        const response = await axios.post(
+            'https://api.openai.com/v1/chat/completions',
+            {
+                model: 'gpt-3.5-turbo',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'Eres un asistente médico experto especializado en extraer información de medicamentos de informes médicos.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                max_tokens: 1000,
+                temperature: 0.1
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            }
+        );
+
+        const content = response.data.choices[0].message.content;
+
+        // Intentar parsear el JSON
+        try {
+            const medications = JSON.parse(content);
+            if (Array.isArray(medications)) {
+                return medications.map(med => ({
+                    ...med,
+                    startDate: new Date().toLocaleDateString('es-CL')
+                }));
+            }
+        } catch (parseError) {
+            console.error('Error parsing AI response:', parseError);
+        }
+
+        return [];
+    } catch (error) {
+        console.error('Error calling OpenAI API for medication extraction:', error);
+        return [];
+    }
+}
+
+// Función para extraer detalles específicos de un medicamento del contenido
+function extractMedicationDetails(content: string, medicationName: string): {
+    dosage: string;
+    form: string;
+    manufacturer: string;
+    type: string;
+    composition: string;
+    instructions: string;
+    additionalNotes: string;
+} {
+    const details = {
+        dosage: '',
+        form: 'comprimido',
+        manufacturer: '',
+        type: 'Permanente',
+        composition: medicationName,
+        instructions: 'Según indicación médica',
+        additionalNotes: ''
+    };
+
+    // Buscar dosis
+    const dosagePatterns = [
+        new RegExp(`${medicationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(\\d+(?:\\.\\d+)?)\\s*(mg|ml|g)`, 'gi'),
+        new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(mg|ml|g)\\s*${medicationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'gi')
+    ];
+
+    dosagePatterns.forEach(pattern => {
+        const match = content.match(pattern);
+        if (match) {
+            details.dosage = `${match[1]} ${match[2]}`;
+        }
+    });
+
+    // Buscar forma farmacéutica
+    const formPatterns = [
+        /(comprimido|tableta|cápsula|jarabe|inyección|crema|pomada|gotas|supositorio)/gi
+    ];
+
+    formPatterns.forEach(pattern => {
+        const match = content.match(pattern);
+        if (match) {
+            details.form = match[1].toLowerCase();
+        }
+    });
+
+    // Buscar instrucciones
+    const instructionPatterns = [
+        /(?:cada|por)\s*(\d+)\s*(?:horas?|días?|semanas?)/gi,
+        /(\d+)\s*(?:vez|veces)\s*(?:al\s*día|diario)/gi,
+        /(?:tomar|administrar|aplicar)\s*([^.]+?)(?:\.|$)/gi
+    ];
+
+    instructionPatterns.forEach(pattern => {
+        const match = content.match(pattern);
+        if (match) {
+            details.instructions = match[0].trim();
+        }
+    });
+
+    // Buscar fabricante
+    const manufacturerPatterns = [
+        /(?:fabricante|laboratorio|marca)\s*:?\s*([a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+?)(?:\.|,|$)/gi
+    ];
+
+    manufacturerPatterns.forEach(pattern => {
+        const match = content.match(pattern);
+        if (match) {
+            details.manufacturer = match[1].trim();
+        }
+    });
+
+    return details;
+}
 
 // Function to enhance medical content using ChatGPT
 async function enhanceMedicalContent(rawContent: string): Promise<string> {
@@ -27,7 +405,13 @@ El informe debe incluir:
 6. Plan de tratamiento/Recomendaciones
 7. Observaciones adicionales
 
-Formatea el resultado en HTML con etiquetas apropiadas para una presentación profesional. Usa un lenguaje médico apropiado pero comprensible.
+IMPORTANTE:
+- Formatea el resultado en HTML con etiquetas apropiadas para una presentación profesional
+- Usa un lenguaje médico apropiado pero comprensible
+- Asegúrate de que haya espacios adecuados entre palabras y elementos
+- Usa etiquetas HTML como <h2>, <h3>, <p>, <ul>, <li> para estructurar el contenido
+- Evita concatenar palabras sin espacios
+- Cada sección debe estar claramente separada
 
 Contenido de la consulta:
 ${rawContent}
@@ -61,7 +445,12 @@ Genera un informe médico completo y detallado:`;
             }
         );
 
-        return response.data.choices[0].message.content;
+        const content = response.data.choices[0].message.content;
+
+        // Limpiar y procesar el HTML para asegurar espacios correctos
+        const cleanedContent = cleanHtmlContent(content);
+
+        return cleanedContent;
     } catch (error: any) {
         console.error('Error calling OpenAI API:', error);
 
@@ -76,6 +465,8 @@ Genera un informe médico completo y detallado:`;
         `;
     }
 }
+
+
 
 // Function to generate medical summary using ChatGPT
 async function generateMedicalSummary(enhancedContent: string): Promise<string> {
@@ -126,7 +517,12 @@ Resumen ejecutivo:`;
             }
         );
 
-        return response.data.choices[0].message.content.trim();
+        const summary = response.data.choices[0].message.content.trim();
+
+        // Limpiar y procesar el resumen para asegurar espacios correctos
+        const cleanedSummary = cleanHtmlContent(summary);
+
+        return cleanedSummary;
     } catch (error: any) {
         console.error('Error calling OpenAI API for summary:', error);
 
@@ -242,29 +638,30 @@ export const downloadRecetaRoute: RouteOptions = {
                 doctorSignature: medicalData?.doctorSignature || null
             };
 
-            // Medicamentos de ejemplo basados en la imagen
-            const medications = medicalData?.medications || [
-                {
-                    name: 'colmibe',
-                    dosage: '40 / 10',
-                    form: 'comprimido',
-                    manufacturer: 'Tecnofarma',
-                    type: 'Permanente',
-                    composition: 'atorvastatina 40 mg + ezetimiba 10 mg comprimido',
-                    instructions: '1 comprimido CADA 24 HORAS, PERMANENTE, ORAL',
-                    startDate: '20/11/2023',
-                    additionalNotes: 'noche +56998840888'
-                },
-                {
-                    name: 'carvedilol',
-                    dosage: '12,5 mg',
-                    form: 'comprimido',
-                    type: 'Permanente',
-                    composition: '12,5 miligramo',
-                    instructions: 'CADA 12 HORAS, PERMANENTE, ORAL',
-                    startDate: '29/04/2024'
-                }
-            ];
+            // Extraer medicamentos del contenido del informe
+            let medications = medicalData?.medications || [];
+
+            // Si no se proporcionaron medicamentos específicos, extraerlos del informe
+            if (medications.length === 0 && report.content) {
+                medications = await extractMedicationsFromReport(report.content);
+            }
+
+            // Si aún no hay medicamentos, usar medicamentos de ejemplo como fallback
+            if (medications.length === 0) {
+                medications = [
+                    {
+                        name: 'Sin medicamentos especificados',
+                        dosage: '',
+                        form: '',
+                        manufacturer: '',
+                        type: '',
+                        composition: 'Consulte con su médico',
+                        instructions: 'Según indicación médica',
+                        startDate: new Date().toLocaleDateString('es-CL'),
+                        additionalNotes: ''
+                    }
+                ];
+            }
 
             // Función para generar HTML de medicamentos
             const generateMedicationsHtml = (meds: any[]) => {

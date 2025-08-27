@@ -72,3 +72,7 @@ export const getReportDetail = (id: string) => apiInstance.get(`/api/reports/${i
 export const createReport = (data: any) => apiInstance.post('/api/reports', data).then(r => r.data);
 export const updateReport = (id: string, data: any) => apiInstance.put(`/api/reports/${id}`, data).then(r => r.data);
 export const deleteReport = (id: string) => apiInstance.delete(`/api/reports/${id}`).then(r => r.data);
+
+// Validación de medicamentos
+export const validateMedications = (data: { text: string; country: string }) =>
+    apiInstance.post('/api/medication-validation', data).then(r => r.data);

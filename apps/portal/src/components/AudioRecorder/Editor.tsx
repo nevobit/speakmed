@@ -2,6 +2,7 @@ import React from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import styles from './AudioRecorder.module.css';
+import { cleanAndProcessHtml } from '../../utils/htmlCleaner';
 
 interface EditorProps {
   value: string;
@@ -26,12 +27,19 @@ const Editor: React.FC<EditorProps> = ({ value, onChange, placeholder, readOnly 
     'list', 'bullet'
   ];
 
+  // Función para manejar cambios asegurando espacios correctos
+  const handleChange = (content: string) => {
+    // Limpiar el contenido para asegurar espacios correctos
+    const cleanedContent = cleanAndProcessHtml(content);
+    onChange(cleanedContent);
+  };
+
   return (
     <div className={styles.editorContainer}>
       <ReactQuill
         theme="snow"
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         modules={modules}
         formats={formats}
         placeholder={placeholder}

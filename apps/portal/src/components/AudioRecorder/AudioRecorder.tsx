@@ -4,6 +4,7 @@ import { Mic, StopCircle, FileText, Download, Copy, RefreshCw, FileDown, Receipt
 import Editor from './Editor';
 import { updateReport } from '../../api';
 import AIMedicationValidation from '../AIMedicationValidation';
+import { cleanAndProcessHtml, htmlToPlainText } from '../../utils/htmlCleaner';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 type View = 'recording' | 'preview' | 'report' | 'medicalData';
@@ -283,12 +284,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Función para convertir HTML a texto plano
-  const htmlToPlainText = (html: string): string => {
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    return tempDiv.textContent || tempDiv.innerText || '';
-  };
+
 
   // Función para copiar texto plano
   const copyPlainText = async () => {
@@ -369,8 +365,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
         throw new Error('Error al generar el informe');
       }
       const reportData = await reportRes.json();
-      setReport(reportData.content || '');
-      setSummary(reportData.summary || '');
+      // Procesar el contenido para asegurar espacios correctos
+      const processedContent = cleanAndProcessHtml(reportData.content || '');
+      const processedSummary = cleanAndProcessHtml(reportData.summary || '');
+      setReport(processedContent);
+      setSummary(processedSummary);
       setReportId(reportData.id || null);
       setView('report');
       
@@ -408,12 +407,28 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     setError(null);
 
     try {
+      // Preparar datos médicos incluyendo medicamentos si están disponibles
+      const recetaData = {
+        ...medicalData,
+        medications: medicationValidation?.found?.map((med: any) => ({
+          name: med.name,
+          dosage: '',
+          form: 'comprimido',
+          manufacturer: '',
+          type: 'Permanente',
+          composition: med.name,
+          instructions: 'Según indicación médica',
+          startDate: new Date().toLocaleDateString('es-CL'),
+          additionalNotes: ''
+        })) || []
+      };
+
       const response = await fetch(`${BASE_URL}/api/reports/${reportId}/receta`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(medicalData),
+        body: JSON.stringify(recetaData),
       });
       
       if (!response.ok) {
@@ -617,7 +632,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
         <div className={styles.reportSection}>
           <h3>Resumen de atención médica</h3>
           <Editor
-            value={summary.replace('```html', '')}
+            value={cleanAndProcessHtml(summary)}
             onChange={setSummary}
             placeholder="Edita el resumen aquí..."
           />
@@ -626,7 +641,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
         <div className={styles.reportSection}>
           <h3>Informe de la atención médica</h3>
           <Editor
-            value={report.replace('```html', '')}
+            value={cleanAndProcessHtml(report)}
             onChange={setReport}
             placeholder="Edita el informe aquí..."
           />

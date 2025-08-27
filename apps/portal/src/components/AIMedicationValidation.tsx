@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiInstance } from '@/api';
+import { validateMedications } from '@/api';
 import { Brain, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
 interface AIMedicationValidationProps {
@@ -29,15 +29,35 @@ const AIMedicationValidation: React.FC<AIMedicationValidationProps> = ({
     setResult(null);
 
     try {
-      const response = await apiInstance.post('/api/medication-validation', {
+      console.log('Enviando validación de medicamentos:', { text: text.trim(), country: 'CHL' });
+      
+      const response = await validateMedications({
         text: text.trim(),
         country: 'CHL'
       });
 
-      setResult(response.data);
-    } catch (err) {
-      setError('Error al validar los medicamentos. Intenta de nuevo.');
-      console.error('Validation error:', err);
+      console.log('Respuesta de validación:', response);
+      setResult(response);
+    } catch (err: any) {
+      console.error('Error completo:', err);
+      
+      let errorMessage = 'Error al validar los medicamentos. Intenta de nuevo.';
+      
+      if (err.response) {
+        // Error de respuesta del servidor
+        console.error('Error de respuesta:', err.response.status, err.response.data);
+        errorMessage = err.response.data?.error || errorMessage;
+      } else if (err.request) {
+        // Error de red
+        console.error('Error de red:', err.request);
+        errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+      } else {
+        // Otro tipo de error
+        console.error('Error:', err.message);
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
