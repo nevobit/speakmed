@@ -419,7 +419,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
           composition: med.name,
           instructions: 'Según indicación médica',
           startDate: new Date().toLocaleDateString('es-CL'),
-          additionalNotes: ''
+          additionalNotes: '',
+          audioBlob: audioBlob
         })) || []
       };
 
@@ -517,12 +518,18 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     setError(null);
 
     try {
+      // Preparar datos con audio si está disponible
+      const examenesData = {
+        ...medicalData,
+        audioBlob: audioBlob ? await blobToBase64(audioBlob) : undefined
+      };
+
       const response = await fetch(`${BASE_URL}/api/reports/${reportId}/examenes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(medicalData),
+        body: JSON.stringify(examenesData),
       });
       
       if (!response.ok) {
@@ -551,6 +558,21 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     } finally {
       setIsDownloadingExamenes(false);
     }
+  };
+
+  // Función auxiliar para convertir Blob a base64
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Extraer solo la parte base64 (sin el prefijo data:audio/webm;base64,)
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   };
 
   const renderRecordingView = () => (

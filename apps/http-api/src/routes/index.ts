@@ -11,6 +11,8 @@ import { vademecumRoute } from './vademecum';
 import { medicationValidationRoute } from './medication-validation';
 import { aiMedicationValidationRoute } from './ai-medication-validation';
 import { audioMedicationExtractionRoute } from './audio-medication-extraction';
+import { audioProcedureExtractionRoute } from './audio-procedure-extraction';
+import { downloadProceduresRecipeRoute } from './procedure-recipes';
 import { descargarRecetaRoute } from './recetas';
 import { descargarExamenRoute } from './examenes';
 import { vozDoctorRoute } from './voz-doctor';
@@ -22,6 +24,8 @@ const routes: RouteOptions[] = [
     medicationValidationRoute,
     aiMedicationValidationRoute,
     audioMedicationExtractionRoute,
+    audioProcedureExtractionRoute,
+    downloadProceduresRecipeRoute,
     getTemplatesRoute,
     createTemplateRoute,
     updateTemplateRoute,

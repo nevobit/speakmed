@@ -3,7 +3,7 @@ import { ReportSchemaMongo } from '@repo/entities/src/models/report-mongo';
 import { TemplateSchemaMongo } from '@repo/entities/src/models/template-mongo';
 import mongoose from 'mongoose';
 import Handlebars from 'handlebars';
-import { createReport, getAllReports, getReportById, getTemplateById, extractMedicationsFromAudio } from '@repo/business-logic';
+import { createReport, getAllReports, getReportById, getTemplateById, extractMedicationsFromAudio, extractProceduresFromAudio } from '@repo/business-logic';
 import axios from 'axios';
 import { cleanHtmlContent } from '../utils/htmlCleaner';
 import { safeJsonParse } from '../utils/jsonCleaner';
@@ -901,11 +901,6 @@ export const downloadRecetaRoute: RouteOptions = {
                     <div class="qr-section">
                         <div class="qr-code">QR</div>
                     </div>
-                    
-                    <div class="validation-text">
-                        Valide este documento en línea escaneando el código QR o visitando la dirección 
-                        https://validador.clinicaalemana.cl/validar e ingresar el código ${id}
-                    </div>
                 </body>
                 </html>
             `;
@@ -1078,6 +1073,43 @@ export const downloadExamenesRoute: RouteOptions = {
                 doctorSignature: medicalData?.doctorSignature || null
             };
 
+            // Extraer procedimientos del audio si está disponible
+            let procedures: any[] = [];
+            console.log({ "audioBlob": medicalData.audioBlob })
+
+            if (procedures.length === 0 && medicalData?.audioBlob) {
+                try {
+                    // Convertir base64 a Blob
+                    console.log({ "audioBlob": medicalData.audioBlob })
+                    const audioBuffer = Buffer.from(medicalData.audioBlob, 'base64');
+                    const blob = new Blob([audioBuffer], { type: 'audio/webm' });
+
+                    const audioExtraction = await extractProceduresFromAudio(blob, OPENAI_API_KEY!);
+
+                    if (audioExtraction.procedures && audioExtraction.procedures.length > 0) {
+                        procedures = audioExtraction.procedures;
+                        console.log({ procedures })
+                    }
+                } catch (error) {
+                    console.error('Error extracting procedures from audio:', error);
+                }
+            }
+
+            // Si no hay procedimientos, usar información del reporte como fallback
+            if (procedures.length === 0) {
+                procedures = [
+                    {
+                        name: 'Consulta Médica',
+                        description: report.summary || 'Sin hallazgos específicos reportados',
+                        instructions: 'Seguir indicaciones médicas',
+                        frequency: 'Una vez',
+                        duration: 'Indefinido',
+                        priority: 'Media',
+                        category: 'Consulta'
+                    }
+                ];
+            }
+
             // Generar contenido HTML para el documento de exámenes médicos
             const examenesHtml = `
                 <!DOCTYPE html>
@@ -1102,9 +1134,17 @@ export const downloadExamenesRoute: RouteOptions = {
                         .exam-section { margin-top: 20px; }
                         .exam-title { color: #008080; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
                         .service-info { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-                        .exam-result { margin-bottom: 15px; }
-                        .exam-name { font-weight: bold; color: #333; margin-bottom: 5px; }
-                        .exam-finding { color: #666; font-size: 14px; }
+                        .exam-result { margin-bottom: 15px; padding: 15px; border-left: 4px solid #008080; background: #f8f9fa; }
+                        .exam-name { font-weight: bold; color: #333; margin-bottom: 8px; font-size: 16px; }
+                        .exam-description { color: #666; font-size: 14px; margin-bottom: 8px; }
+                        .exam-instructions { color: #008080; font-size: 14px; font-weight: 500; margin-bottom: 5px; }
+                        .exam-details { display: flex; gap: 20px; margin-top: 10px; font-size: 12px; color: #666; }
+                        .exam-detail { display: flex; align-items: center; }
+                        .exam-detail strong { margin-right: 5px; }
+                        .priority-badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+                        .priority-alta { background: #e74c3c; color: white; }
+                        .priority-media { background: #f39c12; color: white; }
+                        .priority-baja { background: #27ae60; color: white; }
                         .signature { margin-top: 40px; text-align: center; }
                         .signature-line { border-top: 1px solid #000; width: 200px; margin: 10px auto; }
                         .signature-image { max-width: 200px; max-height: 100px; margin: 10px auto; }
@@ -1162,18 +1202,52 @@ export const downloadExamenesRoute: RouteOptions = {
                     </div>
                     
                     <div class="exam-section">
-                        <div class="exam-title">Examen / Procedimiento</div>
+                        <div class="exam-title">Exámenes / Procedimientos Indicados</div>
                         
                         <div class="service-info">
-                            <strong>Servicio:</strong> ${data.doctorSpecialty} / <strong>Hip. Diagnóstica:</strong> No Definido
+                            <strong>Servicio:</strong> ${data.doctorSpecialty} / <strong>Hip. Diagnóstica:</strong> ${procedures.length > 0 ? 'Procedimientos Específicos' : 'No Definido'}
                         </div>
                         
-                        <div class="exam-result">
-                            <div class="exam-name">1. ${data.doctorSpecialty.toUpperCase()} - ${data.doctorSpecialty.toUpperCase()}</div>
-                            <div class="exam-finding">
-                                ${report.summary || 'Sin hallazgos específicos reportados'}
+                        ${procedures.map((proc: any, index: number) => `
+                            <div class="exam-result">
+                                <div class="exam-name">
+                                    ${index + 1}. ${proc.name}
+                                    <span class="priority-badge priority-${proc.priority?.toLowerCase() || 'media'}">${proc.priority || 'Media'}</span>
+                                </div>
+                                <div class="exam-description">
+                                    <strong>Descripción:</strong> ${proc.description}
+                                </div>
+                                <div class="exam-instructions">
+                                    <strong>Instrucciones:</strong> ${proc.instructions}
+                                </div>
+                                <div class="exam-details">
+                                    <div class="exam-detail">
+                                        <strong>Frecuencia:</strong> ${proc.frequency}
+                                    </div>
+                                    <div class="exam-detail">
+                                        <strong>Duración:</strong> ${proc.duration}
+                                    </div>
+                                    <div class="exam-detail">
+                                        <strong>Categoría:</strong> ${proc.category}
+                                    </div>
+                                    ${proc.preparation ? `
+                                        <div class="exam-detail">
+                                            <strong>Preparación:</strong> ${proc.preparation}
+                                        </div>
+                                    ` : ''}
+                                    ${proc.followUp ? `
+                                        <div class="exam-detail">
+                                            <strong>Seguimiento:</strong> ${proc.followUp}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                ${proc.additionalNotes ? `
+                                    <div style="margin-top: 8px; font-size: 12px; color: #666; font-style: italic;">
+                                        <strong>Notas:</strong> ${proc.additionalNotes}
+                                    </div>
+                                ` : ''}
                             </div>
-                        </div>
+                        `).join('')}
                     </div>
                     
                     <div class="signature">
@@ -1185,11 +1259,6 @@ export const downloadExamenesRoute: RouteOptions = {
                         <div style="width: 100px; height: 100px; background: #008080; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white;">
                             QR
                         </div>
-                    </div>
-                    
-                    <div class="validation-text">
-                        Valide este documento en línea escaneando el código QR o visitando la dirección 
-                        https://validador.clinicaalemana.cl/validar e ingresar el código ${id}
                     </div>
                 </body>
                 </html>

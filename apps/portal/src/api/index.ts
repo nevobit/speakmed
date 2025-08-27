@@ -88,3 +88,47 @@ export const extractMedicationsFromAudio = (audioBlob: Blob) => {
         },
     }).then(r => r.data);
 };
+
+// Extracción de procedimientos del audio
+export const extractProceduresFromAudio = (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'audio.webm');
+
+    return apiInstance.post('/api/audio-procedure-extraction', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    }).then(r => r.data);
+};
+
+// Descargar receta de procedimientos
+export const downloadProceduresRecipe = (data: {
+    reportId: string;
+    patientData: any;
+    procedures?: any[];
+    audioBlob?: string;
+}) => {
+    return apiInstance.post('/api/download-procedures-recipe', data, {
+        responseType: 'blob',
+    }).then(r => r.data);
+};
+
+// Descargar exámenes con procedimientos extraídos
+export const downloadExamenes = (reportId: string, data: {
+    clinicName?: string;
+    doctorName?: string;
+    doctorRut?: string;
+    doctorSpecialty?: string;
+    doctorLocation?: string;
+    patientName?: string;
+    patientGender?: string;
+    patientRut?: string;
+    patientBirthDate?: string;
+    doctorSignature?: string;
+    procedures?: any[];
+    audioBlob?: string;
+}) => {
+    return apiInstance.post(`/api/reports/${reportId}/examenes`, data, {
+        responseType: 'blob',
+    }).then(r => r.data);
+};
