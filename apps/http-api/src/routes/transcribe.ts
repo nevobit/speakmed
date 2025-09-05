@@ -299,7 +299,7 @@ export const transcribeRoute: RouteOptions = {
                 // Prepare form data for OpenAI API
                 const form = new FormData();
                 form.append('file', fs.createReadStream(tempPath), dataFile.filename);
-                form.append('model', 'whisper-1');
+                form.append('model', 'gpt-4o-mini-transcribe');
                 form.append('language', 'es');
                 form.append('response_format', 'json');
 

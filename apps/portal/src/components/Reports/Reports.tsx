@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getReports, getReportDetail } from '../../api';
 import styles from './Reports.module.css';
-import { Eye } from 'lucide-react';
+import { Eye, Download, FileText, Receipt } from 'lucide-react';
 
 interface Report {
   _id: string;
@@ -26,6 +26,12 @@ const Reports: React.FC = () => {
     const [isSending, setIsSending] = useState(false);
     const [sendSuccess, setSendSuccess] = useState<string | null>(null);
     const [sendError, setSendError] = useState<string | null>(null);
+    
+    // Estados para descargas
+    const [isDownloadingReceta, setIsDownloadingReceta] = useState(false);
+    const [isDownloadingInforme, setIsDownloadingInforme] = useState(false);
+    const [isDownloadingExamenes, setIsDownloadingExamenes] = useState(false);
+    const [downloadError, setDownloadError] = useState<string | null>(null);
 
     // Helper para formatear duración en min y sec
     const formatDuration = (duration?: string | number) => {
@@ -73,6 +79,144 @@ const Reports: React.FC = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedReport(null);
+    };
+
+    // Función para descargar receta médica
+    const handleDownloadReceta = async () => {
+        if (!selectedReport) return;
+
+        setIsDownloadingReceta(true);
+        setDownloadError(null);
+
+        try {
+            const medicalData = {
+                clinicName: 'Clínica Alemana',
+                doctorName: 'Dr. MÉDICO ESPECIALISTA',
+                doctorRut: '12345678-9',
+                doctorSpecialty: 'Medicina General',
+                doctorLocation: 'CONSULTORIO',
+                patientName: 'PACIENTE EJEMPLO',
+                patientGender: 'MASCULINO',
+                patientRut: '98765432-1',
+                patientBirthDate: '01/01/1980 (43a)',
+                doctorSignature: null
+            };
+
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/reports/${selectedReport._id}/receta`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(medicalData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al generar la receta médica');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `receta_medica_${selectedReport._id}.html`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            setDownloadError('Error al descargar la receta médica');
+        } finally {
+            setIsDownloadingReceta(false);
+        }
+    };
+
+    // Función para descargar informe médico
+    const handleDownloadInforme = async () => {
+        if (!selectedReport) return;
+
+        setIsDownloadingInforme(true);
+        setDownloadError(null);
+
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/reports/${selectedReport._id}/informe`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al generar el informe médico');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `informe_medico_${selectedReport._id}.html`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            setDownloadError('Error al descargar el informe médico');
+        } finally {
+            setIsDownloadingInforme(false);
+        }
+    };
+
+    // Función para descargar exámenes médicos
+    const handleDownloadExamenes = async () => {
+        if (!selectedReport) return;
+
+        setIsDownloadingExamenes(true);
+        setDownloadError(null);
+
+        try {
+            const medicalData = {
+                clinicName: 'Clínica Alemana',
+                doctorName: 'Dr. MÉDICO ESPECIALISTA',
+                doctorRut: '12345678-9',
+                doctorSpecialty: 'Medicina General',
+                doctorLocation: 'CONSULTORIO',
+                patientName: 'PACIENTE EJEMPLO',
+                patientGender: 'MASCULINO',
+                patientRut: '98765432-1',
+                patientBirthDate: '01/01/1980 (43a)',
+                doctorSignature: null
+            };
+
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/reports/${selectedReport._id}/examenes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(medicalData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al generar el documento de exámenes');
+            }
+
+            const htmlContent = await response.text();
+            
+            // Crear una nueva ventana con el contenido HTML
+            const newWindow = window.open('', '_blank');
+            if (newWindow) {
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+            } else {
+                // Fallback: descargar como archivo HTML
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `examenes_medicos_${selectedReport._id}.html`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+        } catch (err) {
+            setDownloadError('Error al descargar el documento de exámenes');
+        } finally {
+            setIsDownloadingExamenes(false);
+        }
     };
 
     console.log(reports);
@@ -156,6 +300,44 @@ const Reports: React.FC = () => {
                                 <p><strong>Fecha:</strong> {selectedReport.date ? new Date(selectedReport.date).toLocaleDateString() : '-'}</p>
                                 <p><strong>Duración:</strong> {selectedReport.duration || '-'}</p>
                             </div>
+                            
+                            {/* Botones de descarga */}
+                            <div className={styles.downloadSection}>
+                                <h4>Descargar documentos</h4>
+                                <div className={styles.downloadButtons}>
+                                    <button
+                                        className={styles.downloadBtn}
+                                        onClick={handleDownloadReceta}
+                                        disabled={isDownloadingReceta}
+                                        title="Descargar receta médica"
+                                    >
+                                        <Receipt size={16} />
+                                        {isDownloadingReceta ? 'Descargando...' : 'Receta Médica'}
+                                    </button>
+                                    
+                                    <button
+                                        className={styles.downloadBtn}
+                                        onClick={handleDownloadInforme}
+                                        disabled={isDownloadingInforme}
+                                        title="Descargar informe médico"
+                                    >
+                                        <FileText size={16} />
+                                        {isDownloadingInforme ? 'Descargando...' : 'Informe Médico'}
+                                    </button>
+                                    
+                                    <button
+                                        className={styles.downloadBtn}
+                                        onClick={handleDownloadExamenes}
+                                        disabled={isDownloadingExamenes}
+                                        title="Descargar exámenes médicos"
+                                    >
+                                        <Download size={16} />
+                                        {isDownloadingExamenes ? 'Descargando...' : 'Exámenes Médicos'}
+                                    </button>
+                                </div>
+                                {downloadError && <div className={styles.downloadError}>{downloadError}</div>}
+                            </div>
+                            
                             <div className={styles.reportContent}>
                                 {selectedReport.content ? (
                                     <div dangerouslySetInnerHTML={{ __html: selectedReport.content }} />
@@ -163,6 +345,7 @@ const Reports: React.FC = () => {
                                     <p>No hay contenido disponible para este informe.</p>
                                 )}
                             </div>
+                            
                             {/* Campo para enviar por correo electrónico */}
                             <div className={styles.emailSendBox}>
                                 <h4>Enviar informe por correo electrónico</h4>

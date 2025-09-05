@@ -33,7 +33,7 @@ const AudioProcedureExtraction: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
-  const [patientData, setPatientData] = useState({
+  const [patientData, _setPatientData] = useState({
     name: 'Juan Pérez',
     age: '35 años',
     gender: 'Masculino',

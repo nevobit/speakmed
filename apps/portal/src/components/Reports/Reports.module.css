@@ -329,4 +329,70 @@ h2 {
   color: #dc2626;
   margin-top: 0.8rem;
   font-size: 1.05rem;
+}
+
+/* Download section styles */
+.downloadSection {
+  margin: 2rem 0;
+  padding: 1.6rem 1.2rem;
+  background: #f8fafc;
+  border-radius: 0.8rem;
+  border-left: 0.4rem solid #10b981;
+}
+
+.downloadSection h4 {
+  margin: 0 0 1.2rem 0;
+  color: #10b981;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.downloadButtons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.downloadBtn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 0.2rem 0.8rem rgba(16, 185, 129, 0.3);
+}
+
+.downloadBtn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.downloadBtn svg {
+  flex-shrink: 0;
+}
+
+.downloadError {
+  color: #dc2626;
+  margin-top: 0.8rem;
+  font-size: 1.05rem;
+  padding: 0.5rem;
+  background: #fef2f2;
+  border-radius: 0.4rem;
+  border-left: 0.3rem solid #dc2626;
 } 

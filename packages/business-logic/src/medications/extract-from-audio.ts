@@ -105,7 +105,7 @@ export const extractMedicationsFromAudio = async (
 const transcribeAudio = async (audioBlob: Blob, apiKey: string): Promise<string> => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
-    formData.append('model', 'whisper-1');
+    formData.append('model', 'gpt-4o-mini-transcribe');
     formData.append('language', 'es');
     formData.append('response_format', 'json');
 
