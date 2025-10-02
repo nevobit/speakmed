@@ -273,7 +273,7 @@ IMPORTANTE: DEVUELVE SOLO JSON PURO, sin markdown, sin backticks, sin explicacio
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4.1-mini-2025-04-14',
                 messages: [
                     {
                         role: 'system',
@@ -285,7 +285,7 @@ IMPORTANTE: DEVUELVE SOLO JSON PURO, sin markdown, sin backticks, sin explicacio
                     }
                 ],
                 max_tokens: 1000,
-                temperature: 0.1
+                temperature: 0
             },
             {
                 headers: {
@@ -423,7 +423,7 @@ Genera un informe médico completo y detallado:`;
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4.1-mini-2025-04-14',
                 messages: [
                     {
                         role: 'system',
@@ -435,7 +435,7 @@ Genera un informe médico completo y detallado:`;
                     }
                 ],
                 max_tokens: 2000,
-                temperature: 0.3
+                temperature: 0
             },
             {
                 headers: {
@@ -495,7 +495,7 @@ Resumen ejecutivo:`;
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4.1-mini-2025-04-14',
                 messages: [
                     {
                         role: 'system',
@@ -507,7 +507,7 @@ Resumen ejecutivo:`;
                     }
                 ],
                 max_tokens: 300,
-                temperature: 0.2
+                temperature: 0
             },
             {
                 headers: {

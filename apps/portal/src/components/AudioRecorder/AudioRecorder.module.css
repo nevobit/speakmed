@@ -3,6 +3,17 @@
   justify-content: center;
   align-items: flex-start;
   min-height: 60vh;
+  gap: 2.4rem;
+  max-width: 120rem;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 .card {
   background: #fff;
@@ -476,4 +487,179 @@ h2 {
   font-size: 1.2rem;
   margin-bottom: 0.8rem;
   display: block;
+}
+
+/* Nuevos estilos para la interfaz de grabación actualizada */
+.statusIndicator {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 0.8rem 1.6rem;
+  border-radius: 2rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 2.4rem;
+  display: inline-block;
+}
+
+.mainControl {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2.4rem;
+}
+
+.actionButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-bottom: 3.2rem;
+}
+
+.pauseBtn, .uploadBtn, .resetBtn {
+  padding: 1rem 2rem;
+  border-radius: 0.8rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  min-width: 12rem;
+}
+
+.pauseBtn {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.pauseBtn:hover:not(:disabled) {
+  background-color: #fde68a;
+}
+
+.pauseBtn:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.uploadBtn {
+  background-color: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.uploadBtn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.uploadBtn:disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+.resetBtn {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.resetBtn:hover {
+  background-color: #fee2e2;
+}
+
+.configurationSection {
+  margin-bottom: 2.4rem;
+}
+
+.configRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.configItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.configLabel {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.configSelect {
+  padding: 1rem 1.2rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.8rem;
+  font-size: 1.4rem;
+  background-color: #fff;
+  color: #374151;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.configSelect:focus {
+  outline: none;
+  border-color: #1362bc;
+  box-shadow: 0 0 0 3px rgba(19, 98, 188, 0.1);
+}
+
+.tipBox {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.8rem;
+  padding: 1.2rem;
+  text-align: center;
+}
+
+.tipText {
+  color: #64748b;
+  font-size: 1.3rem;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.6rem;
+  }
+  
+  .mainContent {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+  
+  .card {
+    padding: 2.4rem 2rem;
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .configRow {
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
+  }
+  
+  .actionButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .pauseBtn, .uploadBtn, .resetBtn {
+    width: 100%;
+    max-width: 20rem;
+  }
 } 

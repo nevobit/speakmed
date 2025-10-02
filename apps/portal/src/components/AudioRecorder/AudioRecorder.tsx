@@ -5,6 +5,8 @@ import Editor from './Editor';
 import { updateReport } from '../../api';
 import AIMedicationValidation from '../AIMedicationValidation';
 import { cleanAndProcessHtml, htmlToPlainText } from '../../utils/htmlCleaner';
+import ProgressModal from '../ProgressModal/ProgressModal';
+import InfoPanel from '../InfoPanel/InfoPanel';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 type View = 'recording' | 'preview' | 'report' | 'medicalData';
@@ -58,6 +60,30 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
   const [isDownloadingInforme, setIsDownloadingInforme] = useState(false);
   const [isDownloadingExamenes, setIsDownloadingExamenes] = useState(false);
 
+  // Estados para el modal de progreso
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressSteps, setProgressSteps] = useState([
+    { id: 'transcription', title: 'Transcripción del Audio', status: 'pending' as const },
+    { id: 'analysis', title: 'Análisis Médico', status: 'pending' as const },
+    { id: 'report-generation', title: 'Generación del Informe', status: 'pending' as const }
+  ]);
+  const [currentProgressStep, setCurrentProgressStep] = useState('');
+  const [progressStartTime, setProgressStartTime] = useState(0);
+  const [progressDuration, setProgressDuration] = useState(0);
+
+  // Estados para el panel de información
+  const [audioSize, setAudioSize] = useState<string>('0 KB');
+  const [transcriptionTime, setTranscriptionTime] = useState<number>(0);
+  const [aiGenerationTime, setAiGenerationTime] = useState<number>(0);
+  const [totalProcessingTime, setTotalProcessingTime] = useState<number>(0);
+
+  // Estados para configuración de grabación
+  const [aiEngine, setAiEngine] = useState<string>('whisper-fast');
+  const [selectedMicrophone, setSelectedMicrophone] = useState<string>('default');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('es');
+  const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
+  const [isUploadingAudio, setIsUploadingAudio] = useState<boolean>(false);
+
   // Estado para datos médicos
   const [medicalData, setMedicalData] = useState<MedicalData>({
     clinicName: 'Clínica Alemana',
@@ -73,6 +99,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioUploadRef = useRef<HTMLInputElement>(null);
 
   // Función para manejar la carga de firma del médico
   const handleSignatureUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,6 +177,101 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     fileInputRef.current?.click();
   };
 
+  // Función para manejar la subida de archivos de audio
+  const handleAudioUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Limpiar errores previos
+      setError(null);
+      setIsUploadingAudio(true);
+
+      // Validar el archivo
+      if (!validateAudioFile(file)) {
+        setIsUploadingAudio(false);
+        return;
+      }
+
+      // Crear blob directamente del archivo
+      const blob = new Blob([file], { type: file.type });
+      
+      // Calcular tamaño
+      const sizeInBytes = file.size;
+      const sizeInKB = (sizeInBytes / 1024).toFixed(1);
+      setAudioSize(`${sizeInKB} KB`);
+      
+      // Crear URL del blob
+      const audioUrl = URL.createObjectURL(blob);
+      setAudioUrl(audioUrl);
+      setAudioBlob(blob);
+      
+      // Calcular duración del archivo
+      const audio = new Audio();
+      audio.src = audioUrl;
+      
+      audio.onloadedmetadata = () => {
+        setTimer(Math.floor(audio.duration));
+        setIsUploadingAudio(false);
+        setView('preview');
+      };
+      
+      audio.onerror = () => {
+        setError('Error al cargar el archivo de audio. Verifica que el archivo no esté corrupto.');
+        // Limpiar el archivo si hay error
+        setAudioUrl(null);
+        setAudioBlob(null);
+        setAudioSize('0 KB');
+        setTimer(0);
+        setIsUploadingAudio(false);
+      };
+      
+      // Limpiar el input para permitir subir el mismo archivo nuevamente
+      if (audioUploadRef.current) {
+        audioUploadRef.current.value = '';
+      }
+    }
+  };
+
+  // Función para abrir el selector de archivos de audio
+  const openAudioUpload = () => {
+    audioUploadRef.current?.click();
+  };
+
+  // Función para reiniciar la grabación
+  const resetRecording = () => {
+    setTimer(0);
+    setAudioUrl(null);
+    setAudioBlob(null);
+    setError(null);
+    setAudioSize('0 KB');
+    setTranscriptionTime(0);
+    setAiGenerationTime(0);
+    setTotalProcessingTime(0);
+  };
+
+  // Función para validar archivo de audio
+  const validateAudioFile = (file: File): boolean => {
+    // Verificar que sea un archivo de audio
+    if (!file.type.startsWith('audio/')) {
+      setError('El archivo seleccionado no es un archivo de audio válido.');
+      return false;
+    }
+
+    // Verificar tamaño (máximo 100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      setError('El archivo de audio es demasiado grande. Máximo 100MB.');
+      return false;
+    }
+
+    // Verificar que no esté vacío
+    if (file.size === 0) {
+      setError('El archivo de audio está vacío.');
+      return false;
+    }
+
+    return true;
+  };
+
   // Función para actualizar datos médicos
   const updateMedicalData = (field: keyof MedicalData, value: string) => {
     setMedicalData(prev => ({
@@ -197,12 +319,55 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     // Cargar datos médicos guardados
     loadMedicalData();
 
+    // Obtener micrófonos disponibles
+    const getMicrophones = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const microphones = devices.filter(device => device.kind === 'audioinput');
+        setAvailableMicrophones(microphones);
+      } catch (err) {
+        console.error('Error getting microphones:', err);
+      }
+    };
+    getMicrophones();
+
+    // Agregar listener para atajos de teclado
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.code === 'Space' && !recording) {
+        event.preventDefault();
+        startRecording();
+      } else if (event.code === 'Space' && recording) {
+        event.preventDefault();
+        stopRecording();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
+      document.removeEventListener('keydown', handleKeyPress);
     };
-  }, []);
+  }, [recording]);
+
+  // useEffect para actualizar el tiempo de progreso
+  useEffect(() => {
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
+    
+    if (showProgressModal && progressStartTime > 0) {
+      progressInterval = setInterval(() => {
+        setProgressDuration(Math.floor((Date.now() - progressStartTime) / 1000));
+      }, 1000);
+    }
+
+    return () => {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+    };
+  }, [showProgressModal, progressStartTime]);
 
   const startRecording = async () => {
     // Reset state
@@ -214,7 +379,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     setIsPaused(false);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioConstraints: MediaStreamConstraints = {
+        audio: selectedMicrophone === 'default' 
+          ? true 
+          : { deviceId: { exact: selectedMicrophone } }
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
       const mediaRecorder = new window.MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
@@ -228,6 +399,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
         const newAudioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
         setAudioBlob(newAudioBlob);
         setAudioUrl(URL.createObjectURL(newAudioBlob));
+        
+        // Calcular el tamaño del audio
+        const sizeInBytes = newAudioBlob.size;
+        const sizeInKB = (sizeInBytes / 1024).toFixed(1);
+        setAudioSize(`${sizeInKB} KB`);
+        
         if (onRecordingComplete) onRecordingComplete(newAudioBlob);
         setView('preview');
       };
@@ -284,6 +461,32 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Funciones para manejar el progreso
+  const updateProgressStep = (stepId: string, status: 'pending' | 'in-progress' | 'completed' | 'error', duration?: number, error?: string) => {
+    setProgressSteps(prev => prev.map(step => 
+      step.id === stepId 
+        ? { ...step, status, duration, error }
+        : step
+    ));
+  };
+
+  const startProgress = () => {
+    setShowProgressModal(true);
+    setProgressStartTime(Date.now());
+    setProgressDuration(0);
+    setCurrentProgressStep('transcription');
+    
+    // Resetear todos los pasos a pending
+    setProgressSteps(prev => prev.map(step => ({ ...step, status: 'pending' as const, duration: undefined, error: undefined })));
+  };
+
+  const closeProgressModal = () => {
+    setShowProgressModal(false);
+    setProgressStartTime(0);
+    setProgressDuration(0);
+    setCurrentProgressStep('');
+  };
+
 
 
   // Función para copiar texto plano
@@ -329,26 +532,57 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
       setError('Por favor graba un audio y selecciona una plantilla.');
       return;
     }
+
+    // Validar que el blob de audio sea válido
+    if (audioBlob.size === 0) {
+      setError('El archivo de audio está vacío o corrupto.');
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
+    
+    // Iniciar el modal de progreso
+    startProgress();
 
     try {
+      // Paso 1: Transcripción del Audio
+      const transcriptionStartTime = Date.now();
+      updateProgressStep('transcription', 'in-progress');
+      setCurrentProgressStep('transcription');
+
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
+      // Usar el tipo MIME correcto del blob o webm por defecto
+      const fileName = audioBlob.type.includes('audio/') ? `recording.${audioBlob.type.split('/')[1]}` : 'recording.webm';
+      formData.append('audio', audioBlob, fileName);
       const transcribeRes = await fetch(`${BASE_URL}/api/transcribe`, {
         method: 'POST',
         body: formData,
       });
+      
       if (!transcribeRes.ok) {
-        throw new Error('Error al transcribir el audio');
+        const errorData = await transcribeRes.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.error || 'Error al transcribir el audio';
+        throw new Error(errorMessage);
       }
+      
       const transcribeData = await transcribeRes.json();
       const transcript = transcribeData.transcript;
+      
+      // Completar transcripción
+      const transcriptionDuration = Math.floor((Date.now() - transcriptionStartTime) / 1000);
+      setTranscriptionTime(transcriptionDuration);
+      updateProgressStep('transcription', 'completed', transcriptionDuration);
       
       // Guardar la validación de medicamentos si está disponible
       if (transcribeData.medicationValidation) {
         setMedicationValidation(transcribeData.medicationValidation);
       }
+
+      // Paso 2: Análisis Médico
+      const analysisStartTime = Date.now();
+      updateProgressStep('analysis', 'in-progress');
+      setCurrentProgressStep('analysis');
 
       const reportRes = await fetch(`${BASE_URL}/api/reports`, {
         method: 'POST',
@@ -361,24 +595,55 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
           summary: '',
         }),
       });
+      
       if (!reportRes.ok) {
         throw new Error('Error al generar el informe');
       }
+      
+      // Completar análisis
+      const analysisDuration = Math.floor((Date.now() - analysisStartTime) / 1000);
+      setAiGenerationTime(analysisDuration);
+      updateProgressStep('analysis', 'completed', analysisDuration);
+
+      // Paso 3: Generación del Informe
+      const reportStartTime = Date.now();
+      updateProgressStep('report-generation', 'in-progress');
+      setCurrentProgressStep('report-generation');
+
       const reportData = await reportRes.json();
+      
       // Procesar el contenido para asegurar espacios correctos
       const processedContent = cleanAndProcessHtml(reportData.content || '');
       const processedSummary = cleanAndProcessHtml(reportData.summary || '');
       setReport(processedContent);
       setSummary(processedSummary);
       setReportId(reportData.id || null);
-      setView('report');
+      
+      // Completar generación del informe
+      const reportDuration = Math.floor((Date.now() - reportStartTime) / 1000);
+      const totalTime = transcriptionDuration + analysisDuration + reportDuration;
+      setTotalProcessingTime(totalTime);
+      updateProgressStep('report-generation', 'completed', reportDuration);
+      
+      // Cerrar modal de progreso después de un breve delay
+      setTimeout(() => {
+        closeProgressModal();
+        setView('report');
+      }, 1000);
       
       // Recargar estadísticas si la función está disponible
       if (reloadStats) {
         reloadStats();
       }
     } catch (err) {
+      // Marcar el paso actual como error
+      updateProgressStep(currentProgressStep, 'error', undefined, err instanceof Error ? err.message : 'Ocurrió un error desconocido');
       setError(err instanceof Error ? err.message : 'Ocurrió un error desconocido');
+      
+      // Cerrar modal de progreso después de mostrar el error
+      setTimeout(() => {
+        closeProgressModal();
+      }, 3000);
     } finally {
       setIsLoading(false);
     }
@@ -578,35 +843,109 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
   const renderRecordingView = () => (
     <div className={styles.card}>
       <h2>¡Comencemos!</h2>
+      
       <div className={styles.timerRow}>
-        <span className={recording && !isPaused ? styles.blinkingDot : styles.hiddenDot}></span>
         <span className={styles.timer}>{formatTime(timer)}</span>
       </div>
-      <div className={styles.controls}>
+      
+      <div className={styles.statusIndicator}>
+        {recording ? (isPaused ? 'Pausado' : 'Grabando...') : 'Listo para grabar'}
+      </div>
+      
+      <div className={styles.mainControl}>
         {!recording && (
           <button className={styles.recordBtn} onClick={startRecording}>
             <Mic size={48} strokeWidth='1.5px' />
           </button>
         )}
         {recording && (
-          <>
-            <button className={styles.pauseBtn} onClick={isPaused ? resumeRecording : pauseRecording}>
-              {isPaused ? (
-                <svg width="48" height="48" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"/></svg>
-              ) : (
-                <svg width="48" height="48" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" fill="#fff"/><rect x="14" y="4" width="4" height="16" fill="#fff"/></svg>
-              )}
-            </button>
-            <button className={styles.stopBtn} onClick={stopRecording}>
-              <StopCircle size={48} strokeWidth='1.5px' />
-            </button>
-          </>
+          <button className={styles.recordBtn} onClick={isPaused ? resumeRecording : pauseRecording}>
+            {isPaused ? (
+              <svg width="48" height="48" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="#fff"/></svg>
+            ) : (
+              <svg width="48" height="48" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" fill="#fff"/><rect x="14" y="4" width="4" height="16" fill="#fff"/></svg>
+            )}
+          </button>
         )}
       </div>
+      
       <p className={styles.instructions}>
         {recording ? (isPaused ? 'Presiona el botón para reanudar la grabación' : 'Presiona el botón para pausar o detener la grabación') : 'Presiona el botón para comenzar a grabar'}
       </p>
+      
+      <div className={styles.actionButtons}>
+        <button className={styles.pauseBtn} onClick={isPaused ? resumeRecording : pauseRecording} disabled={!recording}>
+          {isPaused ? 'Reanudar' : 'Pausar'}
+        </button>
+        <button className={styles.uploadBtn} onClick={openAudioUpload} disabled={isUploadingAudio}>
+          {isUploadingAudio ? 'Cargando...' : 'Subir audio'}
+        </button>
+        <button className={styles.resetBtn} onClick={resetRecording}>
+          Reiniciar
+        </button>
+      </div>
+      
+      <div className={styles.configurationSection}>
+        <div className={styles.configRow}>
+          <div className={styles.configItem}>
+            <label className={styles.configLabel}>Motor de IA</label>
+            <select 
+              className={styles.configSelect} 
+              value={aiEngine} 
+              onChange={(e) => setAiEngine(e.target.value)}
+            >
+              <option value="whisper-fast">Whisper (rápido)</option>
+              <option value="whisper-accurate">Whisper (preciso)</option>
+            </select>
+          </div>
+          
+          <div className={styles.configItem}>
+            <label className={styles.configLabel}>Micrófono</label>
+            <select 
+              className={styles.configSelect} 
+              value={selectedMicrophone} 
+              onChange={(e) => setSelectedMicrophone(e.target.value)}
+            >
+              <option value="default">Predeterminado</option>
+              {availableMicrophones.map((mic, index) => (
+                <option key={mic.deviceId} value={mic.deviceId}>
+                  {mic.label || `Micrófono ${index + 1}`}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div className={styles.configItem}>
+            <label className={styles.configLabel}>Idioma</label>
+            <select 
+              className={styles.configSelect} 
+              value={selectedLanguage} 
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+            >
+              <option value="es">Español</option>
+              <option value="en">English</option>
+              <option value="pt">Português</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div className={styles.tipBox}>
+        <p className={styles.tipText}>
+          Consejo: usa "Espacio" para iniciar/detener rápidamente.
+        </p>
+      </div>
+      
       {error && <p className={styles.error}>{error}</p>}
+      
+      {/* Input oculto para subir archivos de audio */}
+      <input
+        ref={audioUploadRef}
+        type="file"
+        accept="audio/*"
+        onChange={handleAudioUpload}
+        style={{ display: 'none' }}
+      />
     </div>
   );
 
@@ -863,10 +1202,36 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, hide
 
   return (
     <div className={styles.container}>
-      {view === 'recording' && renderRecordingView()}
-      {view === 'preview' && renderPreviewView()}
-      {view === 'report' && renderReportView()}
-      {view === 'medicalData' && renderMedicalDataView()}
+      <div className={styles.mainContent}>
+        {view === 'recording' && renderRecordingView()}
+        {view === 'preview' && renderPreviewView()}
+        {view === 'report' && renderReportView()}
+        {view === 'medicalData' && renderMedicalDataView()}
+      </div>
+      
+      {/* Panel lateral de información - solo se muestra en preview y report */}
+      {(view === 'preview' || view === 'report') && (
+        <InfoPanel
+          duration={formatTime(timer)}
+          size={audioSize}
+          aiEngine="Whisper (rápido)"
+          language="Español"
+          transcriptionTime={transcriptionTime}
+          aiGenerationTime={aiGenerationTime}
+          totalTime={totalProcessingTime}
+          onBackToRecording={() => setView('recording')}
+          onNewRecording={startNewRecording}
+        />
+      )}
+      
+      {/* Modal de Progreso */}
+      <ProgressModal
+        isOpen={showProgressModal}
+        steps={progressSteps}
+        currentStep={currentProgressStep}
+        totalDuration={progressDuration}
+        onClose={closeProgressModal}
+      />
     </div>
   );
 };

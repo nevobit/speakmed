@@ -165,7 +165,7 @@ IMPORTANTE:
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4.1-mini-2025-04-14',
                 messages: [
                     {
                         role: 'system',
@@ -177,7 +177,7 @@ IMPORTANTE:
                     }
                 ],
                 max_tokens: 2000,
-                temperature: 0.1
+                temperature: 0
             },
             {
                 headers: {
@@ -238,7 +238,7 @@ IMPORTANTE: DEVUELVE SOLO JSON PURO, sin markdown, sin backticks, sin explicacio
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-4.1-mini-2025-04-14',
                 messages: [
                     {
                         role: 'system',
@@ -250,7 +250,7 @@ IMPORTANTE: DEVUELVE SOLO JSON PURO, sin markdown, sin backticks, sin explicacio
                     }
                 ],
                 max_tokens: 2000,
-                temperature: 0.1
+                temperature: 0
             },
             {
                 headers: {

@@ -1,0 +1,307 @@
+/* Modal Overlay */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 2rem;
+}
+
+/* Modal Container */
+.modal {
+  background: #fff;
+  border-radius: 1.2rem;
+  max-width: 50rem;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 2rem 4rem rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal Header */
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2rem 2.4rem;
+  border-bottom: 0.1rem solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 2.4rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 3.2rem;
+  height: 3.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  transition: all 0.2s;
+}
+
+.closeBtn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Modal Content */
+.modalContent {
+  padding: 2.4rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Progress Section */
+.progressSection {
+  margin-bottom: 2.4rem;
+  padding: 1.6rem;
+  background: #f1f5f9;
+  border-radius: 0.8rem;
+  border-left: 0.4rem solid #3b82f6;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.progressBar {
+  width: 100%;
+  height: 0.8rem;
+  background: #e2e8f0;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  border-radius: 0.4rem;
+  transition: width 0.3s ease;
+}
+
+.totalDuration {
+  font-size: 1.2rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Steps Section */
+.stepsSection {
+  margin-bottom: 2.4rem;
+}
+
+.stepsSection h4 {
+  margin: 0 0 1.6rem 0;
+  color: #1e293b;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.stepItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.2rem;
+  padding: 1.2rem;
+  border-radius: 0.8rem;
+  border: 0.1rem solid #e5e7eb;
+  background: #fff;
+  transition: all 0.2s;
+}
+
+.stepItem.currentStep {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+  box-shadow: 0 0.2rem 0.8rem rgba(59, 130, 246, 0.1);
+}
+
+.stepIcon {
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.stepContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.stepTitle {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.4rem;
+  font-size: 1.3rem;
+}
+
+.stepStatus {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.stepStatus.completed {
+  color: #16a34a;
+}
+
+.stepStatus.in-progress {
+  color: #3b82f6;
+}
+
+.stepStatus.error {
+  color: #dc2626;
+}
+
+.stepStatus.pending {
+  color: #64748b;
+}
+
+.stepDuration {
+  font-size: 1rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.stepProgress {
+  flex-shrink: 0;
+  width: 6rem;
+  margin-top: 0.2rem;
+}
+
+.stepProgressBar {
+  width: 100%;
+  height: 0.4rem;
+  background: #e2e8f0;
+  border-radius: 0.2rem;
+  overflow: hidden;
+}
+
+.stepProgressFill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 0.2rem;
+  animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+/* Icons */
+.completedIcon {
+  color: #16a34a;
+}
+
+.errorIcon {
+  color: #dc2626;
+}
+
+.pendingIcon {
+  color: #64748b;
+}
+
+.spinningIcon {
+  color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+/* Info Section */
+.infoSection {
+  display: flex;
+  gap: 2rem;
+  padding: 1.6rem;
+  background: #f8fafc;
+  border-radius: 0.8rem;
+  border: 0.1rem solid #e5e7eb;
+}
+
+.infoItem {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 1.2rem;
+  color: #64748b;
+}
+
+.infoItem svg {
+  flex-shrink: 0;
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes progressPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scaleX(0.8);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modalOverlay {
+    padding: 1rem;
+  }
+  
+  .modal {
+    max-width: 100%;
+  }
+  
+  .modalHeader {
+    padding: 1.6rem;
+  }
+  
+  .modalContent {
+    padding: 1.6rem;
+  }
+  
+  .infoSection {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .stepItem {
+    padding: 1rem;
+  }
+  
+  .stepProgress {
+    width: 4rem;
+  }
+}
+
+
